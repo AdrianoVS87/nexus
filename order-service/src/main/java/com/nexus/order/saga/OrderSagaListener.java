@@ -7,6 +7,7 @@ import com.nexus.order.service.OrderEventPublisher;
 import com.nexus.order.service.OrderNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,9 +20,11 @@ public class OrderSagaListener {
     private final OrderRepository orderRepository;
     private final OrderEventPublisher eventPublisher;
 
-    @KafkaListener(topics = "payments", groupId = "order-saga", containerFactory = "kafkaListenerContainerFactory")
+    @KafkaListener(topics = "payments", groupId = "order-saga")
     @Transactional
-    public void handlePaymentEvents(Object event) {
+    public void handlePaymentEvents(ConsumerRecord<String, Object> record) {
+        Object event = record.value();
+        log.info("Saga received payment event: type={}", event.getClass().getSimpleName());
         if (event instanceof PaymentCompleted pc) {
             handlePaymentCompleted(pc);
         } else if (event instanceof PaymentFailed pf) {
@@ -29,9 +32,11 @@ public class OrderSagaListener {
         }
     }
 
-    @KafkaListener(topics = "inventory", groupId = "order-saga", containerFactory = "kafkaListenerContainerFactory")
+    @KafkaListener(topics = "inventory", groupId = "order-saga")
     @Transactional
-    public void handleInventoryEvents(Object event) {
+    public void handleInventoryEvents(ConsumerRecord<String, Object> record) {
+        Object event = record.value();
+        log.info("Saga received inventory event: type={}", event.getClass().getSimpleName());
         if (event instanceof InventoryReserved ir) {
             handleInventoryReserved(ir);
         } else if (event instanceof InventoryInsufficient ii) {
@@ -40,7 +45,7 @@ public class OrderSagaListener {
     }
 
     private void handlePaymentCompleted(PaymentCompleted event) {
-        log.info("Saga: PaymentCompleted for orderId={}, paymentId={}", event.orderId(), event.paymentId());
+        log.info("Saga: PaymentCompleted for orderId={}", event.orderId());
         var order = orderRepository.findById(event.orderId())
                 .orElseThrow(() -> new OrderNotFoundException(event.orderId()));
 
