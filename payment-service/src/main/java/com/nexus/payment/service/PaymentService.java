@@ -30,12 +30,23 @@ public class PaymentService {
     @Value("${payment.success-rate:0.8}")
     private double successRate;
 
-    @KafkaListener(topics = "payments", groupId = "payment-service", containerFactory = "kafkaListenerContainerFactory")
+    @KafkaListener(topics = "payments", groupId = "payment-service")
     @Transactional
-    public void handlePaymentRequested(PaymentRequested event) {
+    public void handlePaymentEvents(org.apache.kafka.clients.consumer.ConsumerRecord<String, Object> record) {
+        Object event = record.value();
+        log.info("Kafka event received: type={}", event.getClass().getSimpleName());
+        if (event instanceof PaymentRequested pr) {
+            handlePaymentRequested(pr);
+        } else if (event instanceof PaymentRefundRequested prr) {
+            handleRefundRequested(prr);
+        }
+        // Ignore PaymentCompleted/PaymentFailed — those are published by this service
+    }
+
+    private void handlePaymentRequested(PaymentRequested event) {
         log.info("Received PaymentRequested: orderId={}, idempotencyKey={}", event.orderId(), event.idempotencyKey());
 
-        // Idempotency check - if duplicate, re-publish existing result without reprocessing
+        // Idempotency check
         var existing = paymentRepository.findByIdempotencyKey(event.idempotencyKey());
         if (existing.isPresent()) {
             log.info("Duplicate payment request detected: idempotencyKey={}, status={}", event.idempotencyKey(), existing.get().getStatus());
@@ -50,7 +61,6 @@ public class PaymentService {
                 .currency(event.currency())
                 .build();
 
-        // Simulate payment processing
         boolean success = random.nextDouble() < successRate;
 
         if (success) {
@@ -70,9 +80,7 @@ public class PaymentService {
         }
     }
 
-    @KafkaListener(topics = "payments", groupId = "payment-service-refunds", containerFactory = "kafkaListenerContainerFactory")
-    @Transactional
-    public void handleRefundRequested(PaymentRefundRequested event) {
+    private void handleRefundRequested(PaymentRefundRequested event) {
         log.info("Received PaymentRefundRequested: orderId={}", event.orderId());
 
         var payment = paymentRepository.findByOrderId(event.orderId());
