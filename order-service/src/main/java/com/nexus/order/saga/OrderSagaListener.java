@@ -40,9 +40,12 @@ public class OrderSagaListener {
     }
 
     private void handlePaymentCompleted(PaymentCompleted event) {
-        log.info("Saga: PaymentCompleted for orderId={}", event.orderId());
+        log.info("Saga: PaymentCompleted for orderId={}, paymentId={}", event.orderId(), event.paymentId());
         var order = orderRepository.findById(event.orderId())
                 .orElseThrow(() -> new OrderNotFoundException(event.orderId()));
+
+        order.setStatus(OrderStatus.PAYMENT_COMPLETED);
+        orderRepository.save(order);
 
         order.setStatus(OrderStatus.INVENTORY_REQUESTED);
         orderRepository.save(order);
@@ -74,9 +77,12 @@ public class OrderSagaListener {
         var order = orderRepository.findById(event.orderId())
                 .orElseThrow(() -> new OrderNotFoundException(event.orderId()));
 
+        order.setStatus(OrderStatus.REFUND_REQUESTED);
+        orderRepository.save(order);
+        eventPublisher.publishPaymentRefundRequested(order, "Inventory insufficient: " + event.reason());
+
         order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
-        // TODO: Publish PaymentRefundRequested
         eventPublisher.publishOrderCancelled(order.getId(), order.getUserId(), "Inventory insufficient: " + event.reason());
     }
 }

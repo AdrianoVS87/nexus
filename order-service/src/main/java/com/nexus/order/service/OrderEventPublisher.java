@@ -75,4 +75,16 @@ public class OrderEventPublisher {
         kafkaTemplate.send("orders", orderId.toString(), event);
         log.info("Published OrderCancelled: orderId={}", orderId);
     }
+
+    public void publishPaymentRefundRequested(Order order, String reason) {
+        var event = new PaymentRefundRequested(
+                order.getId(),
+                order.getUserId(),
+                order.getTotalAmount(),
+                reason,
+                Instant.now()
+        );
+        kafkaTemplate.send("payments", order.getId().toString(), event);
+        log.info("Published PaymentRefundRequested: orderId={}", order.getId());
+    }
 }
