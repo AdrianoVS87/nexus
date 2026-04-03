@@ -2,6 +2,7 @@ package com.nexus.notification.config;
 
 import com.nexus.notification.domain.event.OrderCancelled;
 import com.nexus.notification.domain.event.OrderConfirmed;
+import com.nexus.notification.domain.event.OrderCreated;
 import com.nexus.notification.domain.event.PaymentFailed;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -32,12 +33,13 @@ public class KafkaConfig {
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.nexus.*");
         props.put(JsonDeserializer.TYPE_MAPPINGS,
+                "OrderCreated:" + OrderCreated.class.getName() + "," +
                 "OrderConfirmed:" + OrderConfirmed.class.getName() + "," +
                 "OrderCancelled:" + OrderCancelled.class.getName() + "," +
                 "PaymentFailed:" + PaymentFailed.class.getName()
         );
 
-        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new JsonDeserializer<>());
+        return new DefaultKafkaConsumerFactory<>(props);
     }
 
     @Bean

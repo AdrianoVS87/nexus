@@ -6,17 +6,6 @@ spring:
     name: notification-service
   kafka:
     bootstrap-servers: localhost:9092
-    consumer:
-      group-id: notification-service
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: com.nexus.*
-        spring.json.type.mapping: >
-          OrderConfirmed:com.nexus.notification.domain.event.OrderConfirmed,
-          OrderCancelled:com.nexus.notification.domain.event.OrderCancelled,
-          PaymentFailed:com.nexus.notification.domain.event.PaymentFailed
 
 management:
   endpoints:

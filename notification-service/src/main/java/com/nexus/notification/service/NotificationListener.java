@@ -6,6 +6,7 @@ import com.nexus.notification.domain.event.PaymentFailed;
 import com.nexus.notification.websocket.OrderStatusWebSocketHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +20,9 @@ public class NotificationListener {
     private final NotificationHistoryService historyService;
 
     @KafkaListener(topics = "orders", groupId = "notification-service")
-    public void handleOrderEvents(Object event) {
+    public void handleOrderEvents(ConsumerRecord<String, Object> record) {
+        Object event = record.value();
+        log.info("Notification event received: type={}", event.getClass().getSimpleName());
         if (event instanceof OrderConfirmed oc) {
             handleOrderConfirmed(oc);
         } else if (event instanceof OrderCancelled cancelled) {
