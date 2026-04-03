@@ -13,6 +13,7 @@ import com.nexus.inventory.repository.ProductRepository;
 import com.nexus.inventory.repository.StockReservationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -44,7 +45,6 @@ public class InventoryService {
     // ── CQRS Read Operations ──────────────────────────────────────────
 
     public List<ProductResponse> getAllProducts() {
-        // Try Redis first (cache-aside)
         try {
             var cached = redisTemplate.opsForList().range(ALL_PRODUCTS_CACHE_KEY, 0, -1);
             if (cached != null && !cached.isEmpty()) {
@@ -57,13 +57,11 @@ public class InventoryService {
             log.warn("Redis read failed, falling back to PostgreSQL: {}", e.getMessage());
         }
 
-        // Fall back to PostgreSQL
         log.debug("Cache miss for all products, reading from PostgreSQL");
         var products = productRepository.findAll().stream()
                 .map(ProductResponse::from)
                 .toList();
 
-        // Populate cache
         try {
             redisTemplate.delete(ALL_PRODUCTS_CACHE_KEY);
             if (!products.isEmpty()) {
@@ -78,7 +76,6 @@ public class InventoryService {
     }
 
     public ProductResponse getProductById(UUID id) {
-        // Try Redis first
         try {
             var cached = redisTemplate.opsForValue().get(PRODUCT_CACHE_KEY + id);
             if (cached != null) {
@@ -86,10 +83,9 @@ public class InventoryService {
                 return (ProductResponse) cached;
             }
         } catch (Exception e) {
-            log.warn("Redis read failed for product {}, falling back to PostgreSQL: {}", id, e.getMessage());
+            log.warn("Redis read failed for product {}: {}", id, e.getMessage());
         }
 
-        // Fall back to PostgreSQL
         log.debug("Cache miss for product {}, reading from PostgreSQL", id);
         var product = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException("Product not found: " + id));
@@ -103,8 +99,25 @@ public class InventoryService {
 
     @KafkaListener(topics = "inventory", groupId = "inventory-service")
     @Transactional
-    public void handleInventoryRequest(InventoryReserveRequested event) {
-        log.info("Received InventoryReserveRequested: orderId={}", event.orderId());
+    public void handleInventoryEvents(ConsumerRecord<String, Object> record) {
+        Object event = record.value();
+        log.info("Inventory event received: type={}", event.getClass().getSimpleName());
+        if (event instanceof InventoryReserveRequested irr) {
+            handleInventoryReserveRequested(irr);
+        }
+    }
+
+    @KafkaListener(topics = "orders", groupId = "inventory-service")
+    @Transactional
+    public void handleOrderEvents(ConsumerRecord<String, Object> record) {
+        Object event = record.value();
+        if (event instanceof OrderCancelled oc) {
+            handleOrderCancelled(oc);
+        }
+    }
+
+    private void handleInventoryReserveRequested(InventoryReserveRequested event) {
+        log.info("Processing InventoryReserveRequested: orderId={}", event.orderId());
 
         try {
             for (var item : event.items()) {
@@ -120,7 +133,6 @@ public class InventoryService {
                 product.reserveStock(item.quantity());
                 productRepository.save(product);
 
-                // Create reservation record
                 var reservation = StockReservation.builder()
                         .productId(item.productId())
                         .orderId(event.orderId())
@@ -128,7 +140,6 @@ public class InventoryService {
                         .build();
                 reservationRepository.save(reservation);
 
-                // Update Redis read model
                 syncProductToRedis(product);
             }
 
@@ -139,15 +150,13 @@ public class InventoryService {
             invalidateAllProductsCache();
 
         } catch (ObjectOptimisticLockingFailureException e) {
-            log.warn("Optimistic lock failure for orderId={}, retrying is handled by Kafka", event.orderId());
-            throw e; // Will cause Kafka retry
+            log.warn("Optimistic lock failure for orderId={}, retrying via Kafka", event.orderId());
+            throw e;
         }
     }
 
-    @KafkaListener(topics = "orders", groupId = "inventory-service")
-    @Transactional
-    public void handleOrderCancelled(OrderCancelled event) {
-        log.info("Received OrderCancelled: orderId={}", event.orderId());
+    private void handleOrderCancelled(OrderCancelled event) {
+        log.info("Processing OrderCancelled: orderId={}", event.orderId());
 
         var reservations = reservationRepository.findByOrderId(event.orderId());
         if (reservations.isEmpty()) {
@@ -157,7 +166,6 @@ public class InventoryService {
 
         for (var reservation : reservations) {
             if (reservation.getStatus() != ReservationStatus.RESERVED) {
-                log.debug("Skipping reservation {} with status {}", reservation.getId(), reservation.getStatus());
                 continue;
             }
 

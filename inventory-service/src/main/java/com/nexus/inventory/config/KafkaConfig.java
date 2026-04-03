@@ -1,9 +1,7 @@
 package com.nexus.inventory.config;
 
-import com.nexus.inventory.domain.event.InventoryInsufficient;
-import com.nexus.inventory.domain.event.InventoryReserveRequested;
-import com.nexus.inventory.domain.event.InventoryReserved;
-import com.nexus.inventory.domain.event.OrderCancelled;
+import com.nexus.inventory.domain.event.*;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -25,15 +23,22 @@ public class KafkaConfig {
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
+    private static final String TYPE_MAPPINGS = String.join(",",
+            "InventoryReserveRequested:" + InventoryReserveRequested.class.getName(),
+            "InventoryReserved:" + InventoryReserved.class.getName(),
+            "InventoryInsufficient:" + InventoryInsufficient.class.getName(),
+            "OrderCreated:" + OrderCreated.class.getName(),
+            "OrderConfirmed:" + OrderConfirmed.class.getName(),
+            "OrderCancelled:" + OrderCancelled.class.getName()
+    );
+
     @Bean
     public ProducerFactory<String, Object> producerFactory() {
         Map<String, Object> props = new HashMap<>();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        props.put(JsonSerializer.TYPE_MAPPINGS,
-                "inventoryReserved:" + InventoryReserved.class.getName() +
-                ",inventoryInsufficient:" + InventoryInsufficient.class.getName());
+        props.put(JsonSerializer.TYPE_MAPPINGS, TYPE_MAPPINGS);
         return new DefaultKafkaProducerFactory<>(props);
     }
 
@@ -51,9 +56,7 @@ public class KafkaConfig {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.nexus.*");
-        props.put(JsonDeserializer.TYPE_MAPPINGS,
-                "inventoryReserveRequested:" + InventoryReserveRequested.class.getName() +
-                ",orderCancelled:" + OrderCancelled.class.getName());
+        props.put(JsonDeserializer.TYPE_MAPPINGS, TYPE_MAPPINGS);
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
