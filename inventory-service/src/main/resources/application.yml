@@ -21,16 +21,6 @@ spring:
     default-schema: inventory
   kafka:
     bootstrap-servers: localhost:9092
-    consumer:
-      group-id: inventory-service
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: com.nexus.*
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
   data:
     redis:
       host: localhost
@@ -47,4 +37,4 @@ management:
 
 logging:
   pattern:
-    console: '{"timestamp":"%d{ISO8601}","level":"%p","service":"inventory-service","traceId":"%X{traceId:-}","spanId":"%X{spanId:-}","message":"%m"}%n'
+    console: '{"timestamp":"%d{ISO8601}","level":"%p","service":"inventory-service","traceId":"%X{traceId:-}","spanId":"%X{spanId:-}","correlationId":"%X{correlationId:-}","message":"%m"}%n'
