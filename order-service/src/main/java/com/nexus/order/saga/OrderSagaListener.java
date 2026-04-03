@@ -1,0 +1,82 @@
+package com.nexus.order.saga;
+
+import com.nexus.order.domain.enums.OrderStatus;
+import com.nexus.order.domain.event.*;
+import com.nexus.order.repository.OrderRepository;
+import com.nexus.order.service.OrderEventPublisher;
+import com.nexus.order.service.OrderNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class OrderSagaListener {
+
+    private final OrderRepository orderRepository;
+    private final OrderEventPublisher eventPublisher;
+
+    @KafkaListener(topics = "payments", groupId = "order-saga", containerFactory = "kafkaListenerContainerFactory")
+    @Transactional
+    public void handlePaymentEvents(Object event) {
+        if (event instanceof PaymentCompleted pc) {
+            handlePaymentCompleted(pc);
+        } else if (event instanceof PaymentFailed pf) {
+            handlePaymentFailed(pf);
+        }
+    }
+
+    @KafkaListener(topics = "inventory", groupId = "order-saga", containerFactory = "kafkaListenerContainerFactory")
+    @Transactional
+    public void handleInventoryEvents(Object event) {
+        if (event instanceof InventoryReserved ir) {
+            handleInventoryReserved(ir);
+        } else if (event instanceof InventoryInsufficient ii) {
+            handleInventoryInsufficient(ii);
+        }
+    }
+
+    private void handlePaymentCompleted(PaymentCompleted event) {
+        log.info("Saga: PaymentCompleted for orderId={}", event.orderId());
+        var order = orderRepository.findById(event.orderId())
+                .orElseThrow(() -> new OrderNotFoundException(event.orderId()));
+
+        order.setStatus(OrderStatus.INVENTORY_REQUESTED);
+        orderRepository.save(order);
+        eventPublisher.publishInventoryReserveRequested(order);
+    }
+
+    private void handlePaymentFailed(PaymentFailed event) {
+        log.info("Saga: PaymentFailed for orderId={}, reason={}", event.orderId(), event.reason());
+        var order = orderRepository.findById(event.orderId())
+                .orElseThrow(() -> new OrderNotFoundException(event.orderId()));
+
+        order.setStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+        eventPublisher.publishOrderCancelled(order.getId(), order.getUserId(), "Payment failed: " + event.reason());
+    }
+
+    private void handleInventoryReserved(InventoryReserved event) {
+        log.info("Saga: InventoryReserved for orderId={}", event.orderId());
+        var order = orderRepository.findById(event.orderId())
+                .orElseThrow(() -> new OrderNotFoundException(event.orderId()));
+
+        order.setStatus(OrderStatus.CONFIRMED);
+        orderRepository.save(order);
+        eventPublisher.publishOrderConfirmed(order.getId(), order.getUserId());
+    }
+
+    private void handleInventoryInsufficient(InventoryInsufficient event) {
+        log.info("Saga: InventoryInsufficient for orderId={}, reason={}", event.orderId(), event.reason());
+        var order = orderRepository.findById(event.orderId())
+                .orElseThrow(() -> new OrderNotFoundException(event.orderId()));
+
+        order.setStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+        // TODO: Publish PaymentRefundRequested
+        eventPublisher.publishOrderCancelled(order.getId(), order.getUserId(), "Inventory insufficient: " + event.reason());
+    }
+}
