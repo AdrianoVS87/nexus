@@ -31,6 +31,10 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.type.mapping: >
+          PaymentCompleted:com.nexus.payment.domain.event.PaymentCompleted,
+          PaymentFailed:com.nexus.payment.domain.event.PaymentFailed
 
 payment:
   success-rate: 0.8
