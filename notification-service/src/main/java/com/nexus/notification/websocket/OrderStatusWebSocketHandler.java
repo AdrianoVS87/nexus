@@ -8,6 +8,7 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @Component
@@ -25,18 +26,30 @@ public class OrderStatusWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         sessions.remove(session);
-        log.info("WebSocket disconnected: sessionId={}", session.getId());
+        log.info("WebSocket disconnected: sessionId={}, status={}", session.getId(), status);
     }
 
-    public void broadcastOrderUpdate(String orderId, String status) {
-        String message = String.format("{\"orderId\":\"%s\",\"status\":\"%s\"}", orderId, status);
+    @Override
+    public void handleTransportError(WebSocketSession session, Throwable exception) {
+        log.error("WebSocket transport error: sessionId={}, error={}", session.getId(), exception.getMessage());
+        sessions.remove(session);
+    }
+
+    public void broadcastOrderUpdate(String orderId, String status, String message) {
+        String payload = """
+                {"orderId":"%s","status":"%s","message":"%s","timestamp":"%s"}"""
+                .formatted(orderId, status, message, Instant.now());
+
         sessions.forEach(session -> {
             try {
                 if (session.isOpen()) {
-                    session.sendMessage(new TextMessage(message));
+                    session.sendMessage(new TextMessage(payload));
+                } else {
+                    sessions.remove(session);
                 }
             } catch (IOException e) {
-                log.error("Failed to send WebSocket message: {}", e.getMessage());
+                log.error("Failed to send WebSocket message: sessionId={}, error={}", session.getId(), e.getMessage());
+                sessions.remove(session);
             }
         });
     }

@@ -13,6 +13,10 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: com.nexus.*
+        spring.json.type.mapping: >
+          OrderConfirmed:com.nexus.notification.domain.event.OrderConfirmed,
+          OrderCancelled:com.nexus.notification.domain.event.OrderCancelled,
+          PaymentFailed:com.nexus.notification.domain.event.PaymentFailed
 
 management:
   endpoints:
@@ -25,4 +29,4 @@ management:
 
 logging:
   pattern:
-    console: '{"timestamp":"%d{ISO8601}","level":"%p","service":"notification-service","traceId":"%X{traceId:-}","spanId":"%X{spanId:-}","message":"%m"}%n'
+    console: '{"timestamp":"%d{ISO8601}","level":"%p","service":"notification-service","traceId":"%X{traceId:-}","spanId":"%X{spanId:-}","correlationId":"%X{correlationId:-}","message":"%m"}%n'
