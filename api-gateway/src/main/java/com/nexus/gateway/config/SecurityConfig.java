@@ -20,7 +20,6 @@ public class SecurityConfig {
                         .pathMatchers("/actuator/**").permitAll()
                         .pathMatchers("/api/v1/auth/**").permitAll()
                         .pathMatchers("/api/v1/products/**").permitAll()
-                        .pathMatchers("/api/v1/orders/**").permitAll()
                         .pathMatchers("/ws/**").permitAll()
                         .anyExchange().permitAll()
                 )
