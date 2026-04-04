@@ -28,7 +28,7 @@ spring:
                 redis-rate-limiter.burstCapacity: 40
                 key-resolver: "#{@ipKeyResolver}"
         - id: notification-service-ws
-          uri: ${NOTIFICATION_SERVICE_URL:ws://localhost:8084}
+          uri: ${NOTIFICATION_WS_URL:ws://localhost:8084}
           predicates:
             - Path=/ws/**
       globalcors:
@@ -36,7 +36,7 @@ spring:
           '[/**]':
             allowedOrigins:
               - "http://localhost:5173"
-              - "*"
+              - "${CORS_ALLOWED_ORIGIN:http://localhost:5173}"
             allowedMethods:
               - GET
               - POST
@@ -45,7 +45,7 @@ spring:
               - PATCH
               - OPTIONS
             allowedHeaders: "*"
-            allowCredentials: false
+            allowCredentials: true
             maxAge: 3600
   data:
     redis:

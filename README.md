@@ -1,3 +1,8 @@
+![Build](https://img.shields.io/github/actions/workflow/status/AdrianoVS87/nexus/ci.yml?branch=main&style=flat-square)
+![Java](https://img.shields.io/badge/Java-21-orange?style=flat-square)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4-brightgreen?style=flat-square)
+![License](https://img.shields.io/github/license/AdrianoVS87/nexus?style=flat-square)
+
 # Nexus
 
 Event-driven e-commerce microservices platform demonstrating distributed systems mastery with Saga orchestration, CQRS, and real-time order tracking.
@@ -134,22 +139,59 @@ sequenceDiagram
 ## Quick Start
 
 ```bash
-# Clone the repository
+# Clone and start everything — Docker Compose handles the rest
 git clone https://github.com/AdrianoVS87/nexus.git
 cd nexus
-
-# Start all services + infrastructure
-docker-compose up -d
+docker compose up -d
 
 # Verify services are healthy
-curl http://localhost:8080/actuator/health  # API Gateway
-curl http://localhost:8081/actuator/health  # Order Service
-curl http://localhost:8082/actuator/health  # Payment Service
-curl http://localhost:8083/actuator/health  # Inventory Service
+curl http://localhost:8080/actuator/health | jq .
 
-# Open frontend
+# Open the frontend
 open http://localhost:5173
 ```
+
+## Happy Path — End to End
+
+```bash
+# 1. List available products
+curl -s http://localhost:8080/api/v1/products | jq .
+
+# 2. Place an order
+curl -s -X POST http://localhost:8080/api/v1/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "550e8400-e29b-41d4-a716-446655440000",
+    "items": [
+      {
+        "productId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "productName": "Mechanical Keyboard",
+        "quantity": 1,
+        "unitPrice": 149.99
+      }
+    ]
+  }' | jq .
+
+# 3. Check order status (replace ORDER_ID with the id from step 2)
+curl -s http://localhost:8080/api/v1/orders/{ORDER_ID} | jq .
+
+# 4. Connect to WebSocket for real-time updates
+websocat ws://localhost:8080/ws/orders
+```
+
+## Key Design Decisions
+
+**Orchestration-based Saga over Choreography.**
+The Order Service acts as a central orchestrator that drives each saga step in sequence. This makes the transaction flow explicit, easy to trace, and straightforward to extend with new compensation logic. In a choreography approach, the flow is scattered across consumers and harder to reason about when debugging production incidents.
+
+**CQRS for the Inventory Service.**
+Product catalog reads vastly outnumber writes. By separating the write model (PostgreSQL with optimistic locking) from the read model (Redis), the system serves high-throughput product listing queries from cache without contending with stock reservation writes.
+
+**Idempotency keys for payment processing.**
+Network partitions and consumer retries are inevitable in a distributed system. Every payment request carries a unique idempotency key so the Payment Service can safely deduplicate retries and guarantee exactly-once processing semantics.
+
+**Kafka in KRaft mode (no ZooKeeper).**
+KRaft eliminates the operational overhead of running a separate ZooKeeper ensemble. The metadata quorum runs inside the Kafka brokers themselves, simplifying deployment, reducing infrastructure footprint, and aligning with the Apache Kafka project's long-term direction.
 
 ## Tech Stack
 
@@ -171,7 +213,7 @@ open http://localhost:5173
 
 ## API Documentation
 
-See [docs/API.md](docs/API.md) for full API reference.
+See [docs/API.md](docs/API.md) for the full API reference.
 
 ## Project Structure
 
