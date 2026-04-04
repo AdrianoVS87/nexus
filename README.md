@@ -204,11 +204,9 @@ KRaft eliminates the operational overhead of running a separate ZooKeeper ensemb
 | Database | PostgreSQL | 16 |
 | Cache/CQRS | Redis | 7 |
 | Frontend | React + TypeScript + Vite | 18 / 5 / 6 |
-| Tracing | OpenTelemetry | 1.36 |
 | Metrics | Micrometer + Prometheus | - |
-| Resilience | Resilience4j | 2.2 |
 | Migrations | Flyway | 10 |
-| Testing | JUnit 5 + Testcontainers | - |
+| Testing | JUnit 5 + Mockito | - |
 | CI/CD | GitHub Actions | - |
 
 ## API Documentation
