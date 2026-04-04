@@ -55,11 +55,30 @@ public class Product {
         updatedAt = Instant.now();
     }
 
+    /**
+     * Checks whether the requested quantity is available in stock.
+     *
+     * @param quantity the number of units to check — must be positive
+     * @return true if stock covers the requested quantity
+     */
     public boolean hasStock(int quantity) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be positive, got: " + quantity);
+        }
         return stockQuantity >= quantity;
     }
 
+    /**
+     * Reserves the given quantity by decrementing stock.
+     *
+     * @param quantity the number of units to reserve — must be positive
+     * @throws IllegalArgumentException if quantity is not positive
+     * @throws IllegalStateException    if insufficient stock is available
+     */
     public void reserveStock(int quantity) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be positive, got: " + quantity);
+        }
         if (!hasStock(quantity)) {
             throw new IllegalStateException("Insufficient stock for product: " + id);
         }

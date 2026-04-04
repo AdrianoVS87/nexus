@@ -175,7 +175,7 @@ public class InventoryService {
             product.setStockQuantity(product.getStockQuantity() + reservation.getQuantity());
             productRepository.save(product);
 
-            reservation.setStatus(ReservationStatus.RELEASED);
+            reservation.release();
             reservationRepository.save(reservation);
 
             syncProductToRedis(product);
@@ -213,6 +213,7 @@ public class InventoryService {
     }
 
     @EventListener(ApplicationReadyEvent.class)
+    @Transactional(readOnly = true)
     public void syncAllProductsToRedis() {
         try {
             productRepository.findAll().forEach(this::syncProductToRedis);
