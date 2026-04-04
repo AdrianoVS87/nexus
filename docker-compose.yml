@@ -46,8 +46,6 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
       CLUSTER_ID: nexus-kafka-cluster-001
-    volumes:
-      - kafka_data:/tmp/kraft-combined-logs
     healthcheck:
       test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
       interval: 10s
@@ -167,6 +165,5 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  kafka_data:
   prometheus_data:
   grafana_data:
