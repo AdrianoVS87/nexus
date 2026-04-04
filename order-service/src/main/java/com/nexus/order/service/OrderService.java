@@ -53,6 +53,10 @@ public class OrderService {
         log.info("Order created: orderId={}, userId={}, total={}", order.getId(), order.getUserId(), total);
 
         eventPublisher.publishOrderCreated(order);
+
+        order.setStatus(OrderStatus.PAYMENT_REQUESTED);
+        order = orderRepository.save(order);
+
         return OrderResponse.from(order);
     }
 
