@@ -9,7 +9,6 @@ import java.util.UUID;
 @Entity
 @Table(name = "stock_reservations")
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -29,6 +28,7 @@ public class StockReservation {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Setter
     private ReservationStatus status;
 
     @Column(name = "created_at", nullable = false)
@@ -39,6 +39,32 @@ public class StockReservation {
         if (id == null) id = UUID.randomUUID();
         if (createdAt == null) createdAt = Instant.now();
         if (status == null) status = ReservationStatus.RESERVED;
+    }
+
+    /**
+     * Transitions this reservation from RESERVED to RELEASED.
+     *
+     * @throws IllegalStateException if current status is not RESERVED
+     */
+    public void release() {
+        if (status != ReservationStatus.RESERVED) {
+            throw new IllegalStateException(
+                    "Cannot release reservation %s: current status is %s, expected RESERVED".formatted(id, status));
+        }
+        status = ReservationStatus.RELEASED;
+    }
+
+    /**
+     * Transitions this reservation from RESERVED to CONSUMED.
+     *
+     * @throws IllegalStateException if current status is not RESERVED
+     */
+    public void consume() {
+        if (status != ReservationStatus.RESERVED) {
+            throw new IllegalStateException(
+                    "Cannot consume reservation %s: current status is %s, expected RESERVED".formatted(id, status));
+        }
+        status = ReservationStatus.CONSUMED;
     }
 
     public enum ReservationStatus {
