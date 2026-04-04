@@ -49,13 +49,12 @@ public class OrderService {
         }
         order.setTotalAmount(total);
 
+        // Transition PENDING → PAYMENT_REQUESTED in one save
+        order.transitionTo(OrderStatus.PAYMENT_REQUESTED);
         order = orderRepository.save(order);
         log.info("Order created: orderId={}, userId={}, total={}", order.getId(), order.getUserId(), total);
 
         eventPublisher.publishOrderCreated(order);
-
-        order.setStatus(OrderStatus.PAYMENT_REQUESTED);
-        order = orderRepository.save(order);
 
         return OrderResponse.from(order);
     }
@@ -74,11 +73,11 @@ public class OrderService {
     }
 
     @Transactional
-    public void updateOrderStatus(UUID orderId, OrderStatus status) {
+    public void updateOrderStatus(UUID orderId, OrderStatus target) {
         var order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
-        order.setStatus(status);
+        order.transitionTo(target);
         orderRepository.save(order);
-        log.info("Order status updated: orderId={}, status={}", orderId, status);
+        log.info("Order status updated: orderId={}, status={}", orderId, target);
     }
 }

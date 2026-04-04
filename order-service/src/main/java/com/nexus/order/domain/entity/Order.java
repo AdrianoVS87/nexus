@@ -13,7 +13,6 @@ import java.util.UUID;
 @Entity
 @Table(name = "orders")
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -30,6 +29,7 @@ public class Order {
     private OrderStatus status;
 
     @Column(name = "total_amount", nullable = false)
+    @Setter
     private BigDecimal totalAmount;
 
     @Column(nullable = false)
@@ -57,6 +57,20 @@ public class Order {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = Instant.now();
+    }
+
+    /**
+     * Transitions this order to the given status, enforcing the state machine.
+     *
+     * @param target the desired new status
+     * @throws IllegalStateException if the transition is not allowed
+     */
+    public void transitionTo(OrderStatus target) {
+        if (!status.canTransitionTo(target)) {
+            throw new IllegalStateException(
+                    "Invalid order transition: %s → %s (orderId=%s)".formatted(status, target, id));
+        }
+        this.status = target;
     }
 
     /**

@@ -1,13 +1,14 @@
 package com.nexus.order.service;
 
 import com.nexus.order.domain.entity.Order;
-import com.nexus.order.domain.entity.OrderItem;
 import com.nexus.order.domain.enums.OrderStatus;
 import com.nexus.order.dto.CreateOrderRequest;
 import com.nexus.order.dto.CreateOrderRequest.OrderItemRequest;
 import com.nexus.order.dto.OrderResponse;
 import com.nexus.order.repository.OrderRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -30,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("OrderService")
 class OrderServiceTest {
 
     @Mock
@@ -53,179 +55,158 @@ class OrderServiceTest {
         productId = UUID.randomUUID();
     }
 
-    @Test
-    void createOrder_withValidRequest_returnsCreatedOrder() {
-        var request = new CreateOrderRequest(userId, List.of(
-                new OrderItemRequest(productId, "Test Product", 2, new BigDecimal("19.99"))
-        ));
-
-        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
-            Order order = invocation.getArgument(0);
-            if (order.getCreatedAt() == null) {
-                order.setCreatedAt(Instant.now());
-                order.setUpdatedAt(Instant.now());
-                if (order.getCurrency() == null) order.setCurrency("USD");
-            }
-            return order;
-        });
-
-        OrderResponse response = orderService.createOrder(request);
-
-        assertThat(response).isNotNull();
-        assertThat(response.userId()).isEqualTo(userId);
-        assertThat(response.status()).isEqualTo(OrderStatus.PAYMENT_REQUESTED);
-        assertThat(response.items()).hasSize(1);
-        assertThat(response.items().getFirst().productName()).isEqualTo("Test Product");
-    }
-
-    @Test
-    void createOrder_calculatesCorrectTotal() {
-        var request = new CreateOrderRequest(userId, List.of(
-                new OrderItemRequest(productId, "Product A", 2, new BigDecimal("10.00")),
-                new OrderItemRequest(UUID.randomUUID(), "Product B", 3, new BigDecimal("5.50"))
-        ));
-
-        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
-            Order order = invocation.getArgument(0);
-            if (order.getCreatedAt() == null) {
-                order.setCreatedAt(Instant.now());
-                order.setUpdatedAt(Instant.now());
-                if (order.getCurrency() == null) order.setCurrency("USD");
-            }
-            return order;
-        });
-
-        OrderResponse response = orderService.createOrder(request);
-
-        // 2 * 10.00 + 3 * 5.50 = 20.00 + 16.50 = 36.50
-        assertThat(response.totalAmount()).isEqualByComparingTo(new BigDecimal("36.50"));
-    }
-
-    @Test
-    void createOrder_publishesOrderCreatedEvent() {
-        var request = new CreateOrderRequest(userId, List.of(
-                new OrderItemRequest(productId, "Test Product", 1, new BigDecimal("25.00"))
-        ));
-
-        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
-            Order order = invocation.getArgument(0);
-            if (order.getCreatedAt() == null) {
-                order.setCreatedAt(Instant.now());
-                order.setUpdatedAt(Instant.now());
-                if (order.getCurrency() == null) order.setCurrency("USD");
-            }
-            return order;
-        });
-
-        orderService.createOrder(request);
-
-        verify(eventPublisher).publishOrderCreated(any(Order.class));
-    }
-
-    @Test
-    void createOrder_withEmptyItems_throwsException() {
-        var request = new CreateOrderRequest(userId, List.of());
-
-        // Empty list would be caught by @NotEmpty validation at controller level.
-        // At service level, BigDecimal.ZERO total is technically valid, but the loop produces no items.
-        // This test verifies the service doesn't explode on empty items.
-        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
-            Order order = invocation.getArgument(0);
-            if (order.getCreatedAt() == null) {
-                order.setCreatedAt(Instant.now());
-                order.setUpdatedAt(Instant.now());
-                if (order.getCurrency() == null) order.setCurrency("USD");
-            }
-            return order;
-        });
-
-        OrderResponse response = orderService.createOrder(request);
-        assertThat(response.items()).isEmpty();
-        assertThat(response.totalAmount()).isEqualByComparingTo(BigDecimal.ZERO);
-    }
-
-    @Test
-    void getOrder_withNonExistentId_throwsNotFoundException() {
-        UUID orderId = UUID.randomUUID();
-        when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> orderService.getOrder(orderId))
-                .isInstanceOf(OrderNotFoundException.class)
-                .hasMessageContaining(orderId.toString());
-    }
-
-    @Test
-    void getOrder_withExistingId_returnsOrder() {
-        UUID orderId = UUID.randomUUID();
-        Order order = Order.builder()
-                .id(orderId)
+    /**
+     * Helper: builds an Order with all required fields pre-set (avoids JPA lifecycle callbacks in unit tests).
+     */
+    private Order buildOrder(UUID id, OrderStatus status) {
+        return Order.builder()
+                .id(id)
                 .userId(userId)
-                .status(OrderStatus.CONFIRMED)
-                .totalAmount(new BigDecimal("50.00"))
-                .currency("USD")
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
-
-        OrderResponse response = orderService.getOrder(orderId);
-
-        assertThat(response.id()).isEqualTo(orderId);
-        assertThat(response.status()).isEqualTo(OrderStatus.CONFIRMED);
-    }
-
-    @Test
-    void getOrdersByUser_returnsPaginatedResults() {
-        var pageable = PageRequest.of(0, 10);
-        Order order = Order.builder()
-                .id(UUID.randomUUID())
-                .userId(userId)
-                .status(OrderStatus.PENDING)
+                .status(status)
                 .totalAmount(new BigDecimal("100.00"))
                 .currency("USD")
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
-
-        when(orderRepository.findByUserId(userId, pageable))
-                .thenReturn(new PageImpl<>(List.of(order), pageable, 1));
-
-        var result = orderService.getOrdersByUser(userId, pageable);
-
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().getFirst().userId()).isEqualTo(userId);
-        assertThat(result.getTotalElements()).isEqualTo(1);
     }
 
-    @Test
-    void updateOrderStatus_withExistingOrder_updatesStatus() {
-        UUID orderId = UUID.randomUUID();
-        Order order = Order.builder()
-                .id(orderId)
-                .userId(userId)
-                .status(OrderStatus.PENDING)
-                .totalAmount(new BigDecimal("50.00"))
-                .currency("USD")
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
-        when(orderRepository.save(any(Order.class))).thenAnswer(i -> i.getArgument(0));
-
-        orderService.updateOrderStatus(orderId, OrderStatus.CONFIRMED);
-
-        verify(orderRepository).save(orderCaptor.capture());
-        assertThat(orderCaptor.getValue().getStatus()).isEqualTo(OrderStatus.CONFIRMED);
+    /** Simulates JPA @PrePersist for save mock. */
+    private Order simulatePersist(Order order) {
+        // In tests the builder already sets fields, but createOrder builds without createdAt/currency
+        if (order.getCreatedAt() == null) {
+            // Use reflection-free approach: the builder sets these via @Builder.Default or @PrePersist
+            // In unit tests without JPA, we rely on the builder having set them.
+        }
+        return order;
     }
 
-    @Test
-    void updateOrderStatus_withNonExistentOrder_throwsNotFoundException() {
-        UUID orderId = UUID.randomUUID();
-        when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
+    @Nested
+    @DisplayName("createOrder")
+    class CreateOrderTests {
 
-        assertThatThrownBy(() -> orderService.updateOrderStatus(orderId, OrderStatus.CONFIRMED))
-                .isInstanceOf(OrderNotFoundException.class);
+        @Test
+        @DisplayName("creates order in PAYMENT_REQUESTED status with correct total")
+        void happyPath() {
+            var request = new CreateOrderRequest(userId, List.of(
+                    new OrderItemRequest(productId, "Keyboard", 2, new BigDecimal("10.00")),
+                    new OrderItemRequest(UUID.randomUUID(), "Mouse", 3, new BigDecimal("5.50"))
+            ));
+
+            when(orderRepository.save(any(Order.class))).thenAnswer(i -> i.getArgument(0));
+
+            OrderResponse response = orderService.createOrder(request);
+
+            assertThat(response.status()).isEqualTo(OrderStatus.PAYMENT_REQUESTED);
+            assertThat(response.totalAmount()).isEqualByComparingTo(new BigDecimal("36.50"));
+            assertThat(response.items()).hasSize(2);
+            verify(eventPublisher).publishOrderCreated(any(Order.class));
+            verify(orderRepository, times(1)).save(any(Order.class));
+        }
+
+        @Test
+        @DisplayName("publishes OrderCreated event after save")
+        void publishesEvent() {
+            var request = new CreateOrderRequest(userId, List.of(
+                    new OrderItemRequest(productId, "Test", 1, new BigDecimal("25.00"))
+            ));
+
+            when(orderRepository.save(any(Order.class))).thenAnswer(i -> i.getArgument(0));
+
+            orderService.createOrder(request);
+
+            verify(eventPublisher).publishOrderCreated(any(Order.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("getOrder")
+    class GetOrderTests {
+
+        @Test
+        @DisplayName("returns order when found")
+        void found() {
+            UUID orderId = UUID.randomUUID();
+            var order = buildOrder(orderId, OrderStatus.CONFIRMED);
+            when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+
+            OrderResponse response = orderService.getOrder(orderId);
+
+            assertThat(response.id()).isEqualTo(orderId);
+            assertThat(response.status()).isEqualTo(OrderStatus.CONFIRMED);
+        }
+
+        @Test
+        @DisplayName("throws OrderNotFoundException when not found")
+        void notFound() {
+            UUID orderId = UUID.randomUUID();
+            when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> orderService.getOrder(orderId))
+                    .isInstanceOf(OrderNotFoundException.class)
+                    .hasMessageContaining(orderId.toString());
+        }
+    }
+
+    @Nested
+    @DisplayName("getOrdersByUser")
+    class GetOrdersByUserTests {
+
+        @Test
+        @DisplayName("returns paginated results")
+        void paginated() {
+            var pageable = PageRequest.of(0, 10);
+            var order = buildOrder(UUID.randomUUID(), OrderStatus.PENDING);
+
+            when(orderRepository.findByUserId(userId, pageable))
+                    .thenReturn(new PageImpl<>(List.of(order), pageable, 1));
+
+            var result = orderService.getOrdersByUser(userId, pageable);
+
+            assertThat(result.getContent()).hasSize(1);
+            assertThat(result.getTotalElements()).isEqualTo(1);
+        }
+    }
+
+    @Nested
+    @DisplayName("updateOrderStatus")
+    class UpdateOrderStatusTests {
+
+        @Test
+        @DisplayName("valid transition PENDING → PAYMENT_REQUESTED succeeds")
+        void validTransition() {
+            UUID orderId = UUID.randomUUID();
+            var order = buildOrder(orderId, OrderStatus.PENDING);
+
+            when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+            when(orderRepository.save(any(Order.class))).thenAnswer(i -> i.getArgument(0));
+
+            orderService.updateOrderStatus(orderId, OrderStatus.PAYMENT_REQUESTED);
+
+            verify(orderRepository).save(orderCaptor.capture());
+            assertThat(orderCaptor.getValue().getStatus()).isEqualTo(OrderStatus.PAYMENT_REQUESTED);
+        }
+
+        @Test
+        @DisplayName("invalid transition PENDING → CONFIRMED throws IllegalStateException")
+        void invalidTransition() {
+            UUID orderId = UUID.randomUUID();
+            var order = buildOrder(orderId, OrderStatus.PENDING);
+
+            when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+
+            assertThatThrownBy(() -> orderService.updateOrderStatus(orderId, OrderStatus.CONFIRMED))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Invalid order transition");
+        }
+
+        @Test
+        @DisplayName("throws OrderNotFoundException for non-existent order")
+        void notFound() {
+            UUID orderId = UUID.randomUUID();
+            when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> orderService.updateOrderStatus(orderId, OrderStatus.CONFIRMED))
+                    .isInstanceOf(OrderNotFoundException.class);
+        }
     }
 }

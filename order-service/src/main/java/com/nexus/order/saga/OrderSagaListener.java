@@ -12,6 +12,15 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
+/**
+ * Saga orchestrator that drives order state transitions in response to
+ * domain events from the payment and inventory services.
+ *
+ * <p>Every handler validates the expected pre-condition status before
+ * mutating state, making the saga idempotent and replay-safe.</p>
+ */
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -45,49 +54,77 @@ public class OrderSagaListener {
     }
 
     private void handlePaymentCompleted(PaymentCompleted event) {
+        var order = findOrder(event.orderId());
+
+        if (order.getStatus() != OrderStatus.PAYMENT_REQUESTED) {
+            log.warn("Saga: ignoring PaymentCompleted for orderId={} — expected PAYMENT_REQUESTED, got {}",
+                    event.orderId(), order.getStatus());
+            return;
+        }
+
         log.info("Saga: PaymentCompleted for orderId={}", event.orderId());
-        var order = orderRepository.findById(event.orderId())
-                .orElseThrow(() -> new OrderNotFoundException(event.orderId()));
-
-        order.setStatus(OrderStatus.PAYMENT_COMPLETED);
+        order.transitionTo(OrderStatus.PAYMENT_COMPLETED);
+        order.transitionTo(OrderStatus.INVENTORY_REQUESTED);
         orderRepository.save(order);
 
-        order.setStatus(OrderStatus.INVENTORY_REQUESTED);
-        orderRepository.save(order);
         eventPublisher.publishInventoryReserveRequested(order);
     }
 
     private void handlePaymentFailed(PaymentFailed event) {
-        log.info("Saga: PaymentFailed for orderId={}, reason={}", event.orderId(), event.reason());
-        var order = orderRepository.findById(event.orderId())
-                .orElseThrow(() -> new OrderNotFoundException(event.orderId()));
+        var order = findOrder(event.orderId());
 
-        order.setStatus(OrderStatus.CANCELLED);
+        if (order.getStatus() != OrderStatus.PAYMENT_REQUESTED) {
+            log.warn("Saga: ignoring PaymentFailed for orderId={} — expected PAYMENT_REQUESTED, got {}",
+                    event.orderId(), order.getStatus());
+            return;
+        }
+
+        log.info("Saga: PaymentFailed for orderId={}, reason={}", event.orderId(), event.reason());
+        order.transitionTo(OrderStatus.CANCELLED);
         orderRepository.save(order);
-        eventPublisher.publishOrderCancelled(order.getId(), order.getUserId(), "Payment failed: " + event.reason());
+
+        eventPublisher.publishOrderCancelled(order.getId(), order.getUserId(),
+                "Payment failed: " + event.reason());
     }
 
     private void handleInventoryReserved(InventoryReserved event) {
-        log.info("Saga: InventoryReserved for orderId={}", event.orderId());
-        var order = orderRepository.findById(event.orderId())
-                .orElseThrow(() -> new OrderNotFoundException(event.orderId()));
+        var order = findOrder(event.orderId());
 
-        order.setStatus(OrderStatus.CONFIRMED);
+        if (order.getStatus() != OrderStatus.INVENTORY_REQUESTED) {
+            log.warn("Saga: ignoring InventoryReserved for orderId={} — expected INVENTORY_REQUESTED, got {}",
+                    event.orderId(), order.getStatus());
+            return;
+        }
+
+        log.info("Saga: InventoryReserved for orderId={}", event.orderId());
+        order.transitionTo(OrderStatus.CONFIRMED);
         orderRepository.save(order);
+
         eventPublisher.publishOrderConfirmed(order.getId(), order.getUserId());
     }
 
     private void handleInventoryInsufficient(InventoryInsufficient event) {
-        log.info("Saga: InventoryInsufficient for orderId={}, reason={}", event.orderId(), event.reason());
-        var order = orderRepository.findById(event.orderId())
-                .orElseThrow(() -> new OrderNotFoundException(event.orderId()));
+        var order = findOrder(event.orderId());
 
-        order.setStatus(OrderStatus.REFUND_REQUESTED);
-        orderRepository.save(order);
+        if (order.getStatus() != OrderStatus.INVENTORY_REQUESTED) {
+            log.warn("Saga: ignoring InventoryInsufficient for orderId={} — expected INVENTORY_REQUESTED, got {}",
+                    event.orderId(), order.getStatus());
+            return;
+        }
+
+        log.info("Saga: InventoryInsufficient for orderId={}, reason={}", event.orderId(), event.reason());
+        order.transitionTo(OrderStatus.REFUND_REQUESTED);
         eventPublisher.publishPaymentRefundRequested(order, "Inventory insufficient: " + event.reason());
 
-        order.setStatus(OrderStatus.CANCELLED);
+        order.transitionTo(OrderStatus.CANCELLED);
         orderRepository.save(order);
-        eventPublisher.publishOrderCancelled(order.getId(), order.getUserId(), "Inventory insufficient: " + event.reason());
+
+        eventPublisher.publishOrderCancelled(order.getId(), order.getUserId(),
+                "Inventory insufficient: " + event.reason());
+    }
+
+    private com.nexus.order.domain.entity.Order findOrder(UUID orderId) {
+        return orderRepository.findById(orderId)
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
     }
 }
