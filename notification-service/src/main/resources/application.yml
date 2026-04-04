@@ -6,13 +6,6 @@ spring:
     name: notification-service
   kafka:
     bootstrap-servers: localhost:9092
-    consumer:
-      group-id: notification-service
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: com.nexus.*
 
 management:
   endpoints:
@@ -25,4 +18,4 @@ management:
 
 logging:
   pattern:
-    console: '{"timestamp":"%d{ISO8601}","level":"%p","service":"notification-service","traceId":"%X{traceId:-}","spanId":"%X{spanId:-}","message":"%m"}%n'
+    console: '{"timestamp":"%d{ISO8601}","level":"%p","service":"notification-service","traceId":"%X{traceId:-}","spanId":"%X{spanId:-}","correlationId":"%X{correlationId:-}","message":"%m"}%n'
