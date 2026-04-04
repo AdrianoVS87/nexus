@@ -14,10 +14,15 @@ public class SecurityConfig {
     public SecurityWebFilterChain securityFilterChain(ServerHttpSecurity http) {
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
+                .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/actuator/**").permitAll()
+                        .pathMatchers("/api/v1/auth/**").permitAll()
                         .pathMatchers("/api/v1/products/**").permitAll()
-                        .anyExchange().permitAll() // TODO: Enable JWT auth
+                        .pathMatchers("/api/v1/orders/**").permitAll()
+                        .pathMatchers("/ws/**").permitAll()
+                        .anyExchange().permitAll()
                 )
                 .build();
     }

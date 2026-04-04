@@ -27,21 +27,47 @@ spring:
                 redis-rate-limiter.replenishRate: 20
                 redis-rate-limiter.burstCapacity: 40
                 key-resolver: "#{@ipKeyResolver}"
+        - id: notification-service-ws
+          uri: ${NOTIFICATION_WS_URL:ws://localhost:8084}
+          predicates:
+            - Path=/ws/**
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:5173"
+              - "${CORS_ALLOWED_ORIGIN:http://localhost:5173}"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
   data:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: 6379
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8080}
+
+gateway:
+  auth:
+    enabled: false
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  health:
+    defaults:
+      enabled: true
   metrics:
     tags:
       application: api-gateway
