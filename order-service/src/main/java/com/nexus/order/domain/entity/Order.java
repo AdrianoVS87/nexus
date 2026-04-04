@@ -59,7 +59,16 @@ public class Order {
         updatedAt = Instant.now();
     }
 
+    /**
+     * Adds an item to this order, establishing the bidirectional relationship.
+     *
+     * @param item the order item to add
+     * @throws IllegalArgumentException if item is null
+     */
     public void addItem(OrderItem item) {
+        if (item == null) {
+            throw new IllegalArgumentException("OrderItem must not be null");
+        }
         items.add(item);
         item.setOrder(this);
     }

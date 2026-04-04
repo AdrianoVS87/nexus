@@ -15,8 +15,15 @@ import java.util.UUID;
 @Slf4j
 public class OrderEventPublisher {
 
+    private static final String TOPIC_ORDERS = "orders";
+    private static final String TOPIC_PAYMENTS = "payments";
+    private static final String TOPIC_INVENTORY = "inventory";
+
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
+    /**
+     * Publishes an OrderCreated event followed by a PaymentRequested event to kick off the saga.
+     */
     public void publishOrderCreated(Order order) {
         var event = new OrderCreated(
                 order.getId(),
@@ -33,10 +40,8 @@ public class OrderEventPublisher {
                         .toList(),
                 Instant.now()
         );
-        kafkaTemplate.send("orders", order.getId().toString(), event);
-        log.info("Published OrderCreated: orderId={}", order.getId());
+        sendEvent(TOPIC_ORDERS, order.getId().toString(), event, "OrderCreated");
 
-        // Saga: immediately request payment
         var paymentEvent = new PaymentRequested(
                 order.getId(),
                 order.getUserId(),
@@ -45,10 +50,12 @@ public class OrderEventPublisher {
                 UUID.randomUUID().toString(),
                 Instant.now()
         );
-        kafkaTemplate.send("payments", order.getId().toString(), paymentEvent);
-        log.info("Published PaymentRequested: orderId={}", order.getId());
+        sendEvent(TOPIC_PAYMENTS, order.getId().toString(), paymentEvent, "PaymentRequested");
     }
 
+    /**
+     * Publishes an inventory reservation request for the given order's items.
+     */
     public void publishInventoryReserveRequested(Order order) {
         var event = new InventoryReserveRequested(
                 order.getId(),
@@ -60,22 +67,28 @@ public class OrderEventPublisher {
                         .toList(),
                 Instant.now()
         );
-        kafkaTemplate.send("inventory", order.getId().toString(), event);
-        log.info("Published InventoryReserveRequested: orderId={}", order.getId());
+        sendEvent(TOPIC_INVENTORY, order.getId().toString(), event, "InventoryReserveRequested");
     }
 
+    /**
+     * Publishes an order confirmation event.
+     */
     public void publishOrderConfirmed(UUID orderId, UUID userId) {
         var event = new OrderConfirmed(orderId, userId, Instant.now());
-        kafkaTemplate.send("orders", orderId.toString(), event);
-        log.info("Published OrderConfirmed: orderId={}", orderId);
+        sendEvent(TOPIC_ORDERS, orderId.toString(), event, "OrderConfirmed");
     }
 
+    /**
+     * Publishes an order cancellation event.
+     */
     public void publishOrderCancelled(UUID orderId, UUID userId, String reason) {
         var event = new OrderCancelled(orderId, userId, reason, Instant.now());
-        kafkaTemplate.send("orders", orderId.toString(), event);
-        log.info("Published OrderCancelled: orderId={}", orderId);
+        sendEvent(TOPIC_ORDERS, orderId.toString(), event, "OrderCancelled");
     }
 
+    /**
+     * Publishes a payment refund request for the given order.
+     */
     public void publishPaymentRefundRequested(Order order, String reason) {
         var event = new PaymentRefundRequested(
                 order.getId(),
@@ -84,7 +97,17 @@ public class OrderEventPublisher {
                 reason,
                 Instant.now()
         );
-        kafkaTemplate.send("payments", order.getId().toString(), event);
-        log.info("Published PaymentRefundRequested: orderId={}", order.getId());
+        sendEvent(TOPIC_PAYMENTS, order.getId().toString(), event, "PaymentRefundRequested");
+    }
+
+    private void sendEvent(String topic, String key, Object event, String eventType) {
+        kafkaTemplate.send(topic, key, event).whenComplete((result, ex) -> {
+            if (ex != null) {
+                log.error("Failed to publish {} to topic={}, key={}: {}", eventType, topic, key, ex.getMessage(), ex);
+            } else {
+                log.info("Published {}: topic={}, key={}, offset={}", eventType, topic, key,
+                        result.getRecordMetadata().offset());
+            }
+        });
     }
 }

@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:nexus_orders;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DEFAULT_NULL_ORDERING=HIGH;INIT=CREATE SCHEMA IF NOT EXISTS orders
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        default_schema: orders
+        dialect: org.hibernate.dialect.H2Dialect
+    open-in-view: false
+  flyway:
+    enabled: false
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers}
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+logging:
+  level:
+    com.nexus: DEBUG
+    org.springframework.kafka: WARN

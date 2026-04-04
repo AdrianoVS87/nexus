@@ -8,6 +8,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.net.URI;
 import java.time.Instant;
 
 @RestControllerAdvice
@@ -19,6 +20,7 @@ public class GlobalExceptionHandler {
         log.warn("Order not found: {}", ex.getMessage());
         var problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
         problem.setTitle("Order Not Found");
+        problem.setType(URI.create("https://nexus.com/errors/order-not-found"));
         problem.setProperty("timestamp", Instant.now());
         return problem;
     }
@@ -28,6 +30,7 @@ public class GlobalExceptionHandler {
         log.warn("Validation error: {}", ex.getMessage());
         var problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Validation failed");
         problem.setTitle("Validation Error");
+        problem.setType(URI.create("https://nexus.com/errors/validation"));
         problem.setProperty("timestamp", Instant.now());
         var errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
@@ -36,11 +39,22 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {
+        log.warn("Bad request: {}", ex.getMessage());
+        var problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problem.setTitle("Bad Request");
+        problem.setType(URI.create("https://nexus.com/errors/bad-request"));
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleGeneric(Exception ex) {
         log.error("Unexpected error", ex);
         var problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
         problem.setTitle("Internal Server Error");
+        problem.setType(URI.create("https://nexus.com/errors/internal"));
         problem.setProperty("timestamp", Instant.now());
         return problem;
     }
