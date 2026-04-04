@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
@@ -14,9 +14,11 @@ interface CartSlideOverProps {
 export default function CartSlideOver({ open, onClose }: CartSlideOverProps) {
   const { items, removeItem, updateQuantity, clearCart, totalAmount } = useCartStore();
   const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleCheckout = async () => {
-    if (items.length === 0) return;
+    if (items.length === 0 || isSubmitting) return;
+    setIsSubmitting(true);
 
     try {
       const order = await createOrder({
@@ -33,6 +35,8 @@ export default function CartSlideOver({ open, onClose }: CartSlideOverProps) {
       navigate(`/orders/${order.id}`);
     } catch (err) {
       console.error('Checkout failed:', err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -137,9 +141,10 @@ export default function CartSlideOver({ open, onClose }: CartSlideOverProps) {
                 </div>
                 <button
                   onClick={handleCheckout}
-                  className="w-full rounded-xl bg-nexus-600 py-3 font-semibold text-white hover:bg-nexus-500 active:bg-nexus-700 transition-colors focus:outline-none focus:ring-2 focus:ring-nexus-400 focus:ring-offset-2 focus:ring-offset-gray-900"
+                  disabled={isSubmitting}
+                  className="w-full rounded-xl bg-nexus-600 py-3 font-semibold text-white hover:bg-nexus-500 active:bg-nexus-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-nexus-400 focus:ring-offset-2 focus:ring-offset-gray-900"
                 >
-                  Checkout
+                  {isSubmitting ? 'Placing order…' : 'Checkout'}
                 </button>
               </div>
             )}
