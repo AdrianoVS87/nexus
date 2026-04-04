@@ -68,7 +68,7 @@ export default function OrderTracking() {
     [id]
   );
 
-  useOrderWebSocket(handleWsUpdate);
+  useOrderWebSocket(handleWsUpdate, id);
 
   if (loading) {
     return (

@@ -2,17 +2,20 @@ package com.nexus.notification.websocket;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
+import java.net.URI;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
+@DisplayName("OrderStatusWebSocketHandler")
 class OrderStatusWebSocketHandlerTest {
 
     private OrderStatusWebSocketHandler handler;
@@ -22,86 +25,141 @@ class OrderStatusWebSocketHandlerTest {
         handler = new OrderStatusWebSocketHandler();
     }
 
-    @Test
-    @DisplayName("broadcastOrderUpdate sends message to all open sessions")
-    void broadcastOrderUpdate_sendsToAllOpenSessions() throws Exception {
-        var session1 = mock(WebSocketSession.class);
-        var session2 = mock(WebSocketSession.class);
-        given(session1.isOpen()).willReturn(true);
-        given(session1.getId()).willReturn("s1");
-        given(session2.isOpen()).willReturn(true);
-        given(session2.getId()).willReturn("s2");
-
-        handler.afterConnectionEstablished(session1);
-        handler.afterConnectionEstablished(session2);
-
-        handler.broadcastOrderUpdate("order-1", "CONFIRMED", "Your order is confirmed");
-
-        verify(session1).sendMessage(any(TextMessage.class));
-        verify(session2).sendMessage(any(TextMessage.class));
-    }
-
-    @Test
-    @DisplayName("broadcastOrderUpdate removes closed sessions during broadcast")
-    void broadcastOrderUpdate_removesClosedSessions() throws Exception {
-        var openSession = mock(WebSocketSession.class);
-        var closedSession = mock(WebSocketSession.class);
-        given(openSession.isOpen()).willReturn(true);
-        given(openSession.getId()).willReturn("open");
-        given(closedSession.isOpen()).willReturn(false);
-        given(closedSession.getId()).willReturn("closed");
-
-        handler.afterConnectionEstablished(openSession);
-        handler.afterConnectionEstablished(closedSession);
-
-        handler.broadcastOrderUpdate("order-1", "CONFIRMED", "Confirmed");
-
-        verify(openSession).sendMessage(any(TextMessage.class));
-        verify(closedSession, never()).sendMessage(any(TextMessage.class));
-    }
-
-    @Test
-    @DisplayName("broadcastOrderUpdate handles IOException per session without crashing")
-    void broadcastOrderUpdate_handlesIOExceptionPerSession() throws Exception {
-        var failingSession = mock(WebSocketSession.class);
-        var healthySession = mock(WebSocketSession.class);
-        given(failingSession.isOpen()).willReturn(true);
-        given(failingSession.getId()).willReturn("failing");
-        given(healthySession.isOpen()).willReturn(true);
-        given(healthySession.getId()).willReturn("healthy");
-        doThrow(new IOException("broken pipe")).when(failingSession).sendMessage(any(TextMessage.class));
-
-        handler.afterConnectionEstablished(failingSession);
-        handler.afterConnectionEstablished(healthySession);
-
-        handler.broadcastOrderUpdate("order-1", "CANCELLED", "Cancelled");
-
-        verify(healthySession).sendMessage(any(TextMessage.class));
-    }
-
-    @Test
-    @DisplayName("afterConnectionEstablished adds session to broadcast list")
-    void afterConnectionEstablished_addsSessions() throws Exception {
+    private WebSocketSession globalSession(String id) {
         var session = mock(WebSocketSession.class);
-        given(session.isOpen()).willReturn(true);
-        given(session.getId()).willReturn("new-session");
-
-        handler.afterConnectionEstablished(session);
-        handler.broadcastOrderUpdate("order-1", "STATUS", "msg");
-
-        verify(session).sendMessage(any(TextMessage.class));
+        given(session.getId()).willReturn(id);
+        // No orderId query param → global subscriber
+        given(session.getUri()).willReturn(URI.create("ws://localhost/ws/orders"));
+        return session;
     }
 
-    @Test
-    @DisplayName("afterConnectionClosed removes session from broadcast list")
-    void afterConnectionClosed_removesSession() throws Exception {
+    private WebSocketSession orderSession(String id, String orderId) {
         var session = mock(WebSocketSession.class);
-        given(session.getId()).willReturn("to-remove");
+        given(session.getId()).willReturn(id);
+        given(session.getUri()).willReturn(URI.create("ws://localhost/ws/orders?orderId=" + orderId));
+        return session;
+    }
 
-        handler.afterConnectionEstablished(session);
-        handler.afterConnectionClosed(session, CloseStatus.NORMAL);
-        handler.broadcastOrderUpdate("order-1", "STATUS", "msg");
+    @Nested
+    @DisplayName("Subscription filtering")
+    class SubscriptionTests {
 
-        verify(session, never()).sendMessage(any(TextMessage.class));
+        @Test
+        @DisplayName("global subscriber receives all broadcasts")
+        void globalReceivesAll() throws Exception {
+            var session = globalSession("global");
+            given(session.isOpen()).willReturn(true);
+
+            handler.afterConnectionEstablished(session);
+
+            handler.broadcastOrderUpdate("order-A", "CONFIRMED", "done");
+            handler.broadcastOrderUpdate("order-B", "CANCELLED", "failed");
+
+            verify(session, times(2)).sendMessage(any(TextMessage.class));
+        }
+
+        @Test
+        @DisplayName("order-specific subscriber receives only matching broadcasts")
+        void filteredReceivesOnlyMatching() throws Exception {
+            var subscribedSession = orderSession("s1", "order-A");
+            given(subscribedSession.isOpen()).willReturn(true);
+
+            handler.afterConnectionEstablished(subscribedSession);
+
+            handler.broadcastOrderUpdate("order-A", "CONFIRMED", "done");
+            handler.broadcastOrderUpdate("order-B", "CANCELLED", "failed");
+
+            // Only one message — the order-A broadcast
+            verify(subscribedSession, times(1)).sendMessage(any(TextMessage.class));
+        }
+
+        @Test
+        @DisplayName("multiple subscribers to different orders only get their own updates")
+        void multipleOrders() throws Exception {
+            var sessionA = orderSession("sA", "order-A");
+            var sessionB = orderSession("sB", "order-B");
+            given(sessionA.isOpen()).willReturn(true);
+            given(sessionB.isOpen()).willReturn(true);
+
+            handler.afterConnectionEstablished(sessionA);
+            handler.afterConnectionEstablished(sessionB);
+
+            handler.broadcastOrderUpdate("order-A", "CONFIRMED", "done");
+
+            verify(sessionA, times(1)).sendMessage(any(TextMessage.class));
+            verify(sessionB, never()).sendMessage(any(TextMessage.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("Connection lifecycle")
+    class LifecycleTests {
+
+        @Test
+        @DisplayName("closed sessions are removed from broadcast list")
+        void removesOnClose() throws Exception {
+            var session = globalSession("to-remove");
+            given(session.isOpen()).willReturn(true);
+
+            handler.afterConnectionEstablished(session);
+            handler.afterConnectionClosed(session, CloseStatus.NORMAL);
+
+            handler.broadcastOrderUpdate("order-1", "CONFIRMED", "done");
+
+            verify(session, never()).sendMessage(any(TextMessage.class));
+        }
+
+        @Test
+        @DisplayName("stale sessions detected during broadcast are removed")
+        void removesStale() throws Exception {
+            var open = globalSession("open");
+            var stale = globalSession("stale");
+            given(open.isOpen()).willReturn(true);
+            given(stale.isOpen()).willReturn(false);
+
+            handler.afterConnectionEstablished(open);
+            handler.afterConnectionEstablished(stale);
+
+            handler.broadcastOrderUpdate("order-1", "CONFIRMED", "done");
+
+            verify(open).sendMessage(any(TextMessage.class));
+            verify(stale, never()).sendMessage(any(TextMessage.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("Error handling")
+    class ErrorTests {
+
+        @Test
+        @DisplayName("IOException on one session does not affect others")
+        void isolatesFailure() throws Exception {
+            var failing = globalSession("failing");
+            var healthy = globalSession("healthy");
+            given(failing.isOpen()).willReturn(true);
+            given(healthy.isOpen()).willReturn(true);
+            doThrow(new IOException("broken pipe")).when(failing).sendMessage(any(TextMessage.class));
+
+            handler.afterConnectionEstablished(failing);
+            handler.afterConnectionEstablished(healthy);
+
+            handler.broadcastOrderUpdate("order-1", "CANCELLED", "err");
+
+            verify(healthy).sendMessage(any(TextMessage.class));
+        }
+
+        @Test
+        @DisplayName("transport error removes session")
+        void transportErrorRemoves() throws Exception {
+            var session = globalSession("error-session");
+            given(session.isOpen()).willReturn(true);
+
+            handler.afterConnectionEstablished(session);
+            handler.handleTransportError(session, new RuntimeException("timeout"));
+
+            handler.broadcastOrderUpdate("order-1", "CONFIRMED", "done");
+
+            verify(session, never()).sendMessage(any(TextMessage.class));
+        }
     }
 }
