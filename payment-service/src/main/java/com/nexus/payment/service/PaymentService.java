@@ -15,22 +15,25 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class PaymentService {
 
+    private static final String TOPIC_PAYMENTS = "payments";
+    private static final String DECLINE_REASON = "Payment declined by processor";
+
     private final PaymentRepository paymentRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
-    private final Random random = new Random();
 
     @Value("${payment.success-rate:0.8}")
     private double successRate;
 
-    @KafkaListener(topics = "payments", groupId = "payment-service")
+    @KafkaListener(topics = TOPIC_PAYMENTS, groupId = "payment-service")
     @Transactional
     public void handlePaymentEvents(org.apache.kafka.clients.consumer.ConsumerRecord<String, Object> record) {
         Object event = record.value();
@@ -40,13 +43,18 @@ public class PaymentService {
         } else if (event instanceof PaymentRefundRequested prr) {
             handleRefundRequested(prr);
         }
-        // Ignore PaymentCompleted/PaymentFailed — those are published by this service
     }
 
     private void handlePaymentRequested(PaymentRequested event) {
         log.info("Received PaymentRequested: orderId={}, idempotencyKey={}", event.orderId(), event.idempotencyKey());
 
-        // Idempotency check
+        if (event.amount() == null || event.amount().compareTo(BigDecimal.ZERO) <= 0) {
+            log.error("Invalid payment amount: orderId={}, amount={}", event.orderId(), event.amount());
+            var failed = new PaymentFailed(event.orderId(), "Invalid payment amount", Instant.now());
+            sendEvent(event.orderId().toString(), failed, "PaymentFailed");
+            return;
+        }
+
         var existing = paymentRepository.findByIdempotencyKey(event.idempotencyKey());
         if (existing.isPresent()) {
             log.info("Duplicate payment request detected: idempotencyKey={}, status={}", event.idempotencyKey(), existing.get().getStatus());
@@ -61,21 +69,21 @@ public class PaymentService {
                 .currency(event.currency())
                 .build();
 
-        boolean success = random.nextDouble() < successRate;
+        boolean success = ThreadLocalRandom.current().nextDouble() < successRate;
 
         if (success) {
             payment.setStatus(PaymentStatus.COMPLETED);
             paymentRepository.save(payment);
 
             var completed = new PaymentCompleted(payment.getId(), event.orderId(), event.amount(), Instant.now());
-            kafkaTemplate.send("payments", event.orderId().toString(), completed);
+            sendEvent(event.orderId().toString(), completed, "PaymentCompleted");
             log.info("Payment completed: paymentId={}, orderId={}", payment.getId(), event.orderId());
         } else {
             payment.setStatus(PaymentStatus.FAILED);
             paymentRepository.save(payment);
 
-            var failed = new PaymentFailed(event.orderId(), "Payment declined by processor", Instant.now());
-            kafkaTemplate.send("payments", event.orderId().toString(), failed);
+            var failed = new PaymentFailed(event.orderId(), DECLINE_REASON, Instant.now());
+            sendEvent(event.orderId().toString(), failed, "PaymentFailed");
             log.info("Payment failed: orderId={}", event.orderId());
         }
     }
@@ -109,10 +117,21 @@ public class PaymentService {
         String orderId = payment.getOrderId().toString();
         if (payment.getStatus() == PaymentStatus.COMPLETED) {
             var completed = new PaymentCompleted(payment.getId(), payment.getOrderId(), payment.getAmount(), Instant.now());
-            kafkaTemplate.send("payments", orderId, completed);
+            sendEvent(orderId, completed, "PaymentCompleted");
         } else if (payment.getStatus() == PaymentStatus.FAILED) {
-            var failed = new PaymentFailed(payment.getOrderId(), "Payment declined by processor", Instant.now());
-            kafkaTemplate.send("payments", orderId, failed);
+            var failed = new PaymentFailed(payment.getOrderId(), DECLINE_REASON, Instant.now());
+            sendEvent(orderId, failed, "PaymentFailed");
         }
+    }
+
+    private void sendEvent(String key, Object event, String eventType) {
+        kafkaTemplate.send(TOPIC_PAYMENTS, key, event).whenComplete((result, ex) -> {
+            if (ex != null) {
+                log.error("Failed to publish {} for key={}: {}", eventType, key, ex.getMessage(), ex);
+            } else {
+                log.info("Published {}: key={}, offset={}", eventType, key,
+                        result.getRecordMetadata().offset());
+            }
+        });
     }
 }
