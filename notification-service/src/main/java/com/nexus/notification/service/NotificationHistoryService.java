@@ -1,33 +1,44 @@
 package com.nexus.notification.service;
 
 import com.nexus.notification.domain.Notification;
+import com.nexus.notification.domain.entity.NotificationEntity;
+import com.nexus.notification.repository.NotificationRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
+@RequiredArgsConstructor
 public class NotificationHistoryService {
 
-    private final ConcurrentHashMap<UUID, CopyOnWriteArrayList<Notification>> history = new ConcurrentHashMap<>();
+    private final NotificationRepository repository;
 
+    @Transactional
     public void store(UUID orderId, UUID userId, String type, String channel, String message) {
-        var notification = new Notification(
-                UUID.randomUUID(),
-                orderId,
-                userId,
-                type,
-                channel,
-                message,
-                Instant.now()
-        );
-        history.computeIfAbsent(orderId, k -> new CopyOnWriteArrayList<>()).add(notification);
+        repository.save(NotificationEntity.builder()
+                .orderId(orderId)
+                .userId(userId)
+                .type(type)
+                .channel(channel)
+                .message(message)
+                .build());
     }
 
+    @Transactional(readOnly = true)
     public List<Notification> getByOrderId(UUID orderId) {
-        return history.getOrDefault(orderId, new CopyOnWriteArrayList<>());
+        return repository.findByOrderIdOrderByCreatedAtDesc(orderId)
+                .stream()
+                .map(entity -> new Notification(
+                        entity.getId(),
+                        entity.getOrderId(),
+                        entity.getUserId(),
+                        entity.getType(),
+                        entity.getChannel(),
+                        entity.getMessage(),
+                        entity.getCreatedAt()))
+                .toList();
     }
 }

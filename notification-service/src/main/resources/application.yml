@@ -4,6 +4,21 @@ server:
 spring:
   application:
     name: notification-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/nexus?currentSchema=notifications
+    username: nexus
+    password: nexus
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: notifications
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+  flyway:
+    schemas: notifications
+    default-schema: notifications
   kafka:
     bootstrap-servers: localhost:9092
 

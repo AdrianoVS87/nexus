@@ -122,8 +122,13 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/nexus?currentSchema=notifications
+      SPRING_DATASOURCE_USERNAME: nexus
+      SPRING_DATASOURCE_PASSWORD: nexus
     depends_on:
       kafka:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
 
   api-gateway:
