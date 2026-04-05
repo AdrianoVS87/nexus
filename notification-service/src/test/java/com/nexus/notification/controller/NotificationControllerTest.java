@@ -6,6 +6,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -15,6 +17,8 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -30,7 +34,7 @@ class NotificationControllerTest {
     private NotificationHistoryService historyService;
 
     @Test
-    @DisplayName("GET /api/v1/notifications/{orderId} returns 200 with notification list")
+    @DisplayName("GET /api/v1/notifications/{orderId} returns paginated notification list")
     void getNotifications_returns200() throws Exception {
         var orderId = UUID.randomUUID();
         var notification = new Notification(
@@ -43,24 +47,26 @@ class NotificationControllerTest {
                 Instant.parse("2026-04-03T12:00:00Z")
         );
 
-        given(historyService.getByOrderId(orderId)).willReturn(List.of(notification));
+        given(historyService.getByOrderId(eq(orderId), any()))
+                .willReturn(new PageImpl<>(List.of(notification), PageRequest.of(0, 20), 1));
 
         mockMvc.perform(get("/api/v1/notifications/{orderId}", orderId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].type", is("ORDER_CONFIRMED")))
-                .andExpect(jsonPath("$[0].channel", is("EMAIL")))
-                .andExpect(jsonPath("$[0].orderId", is(orderId.toString())));
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].type", is("ORDER_CONFIRMED")))
+                .andExpect(jsonPath("$.content[0].channel", is("EMAIL")))
+                .andExpect(jsonPath("$.content[0].orderId", is(orderId.toString())));
     }
 
     @Test
-    @DisplayName("GET /api/v1/notifications/{orderId} returns 200 with empty list when no notifications")
+    @DisplayName("GET /api/v1/notifications/{orderId} returns empty content when no notifications")
     void getNotifications_returns200Empty() throws Exception {
         var orderId = UUID.randomUUID();
-        given(historyService.getByOrderId(orderId)).willReturn(List.of());
+        given(historyService.getByOrderId(eq(orderId), any()))
+                .willReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
 
         mockMvc.perform(get("/api/v1/notifications/{orderId}", orderId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(0)));
+                .andExpect(jsonPath("$.content", hasSize(0)));
     }
 }
