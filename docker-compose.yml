@@ -54,7 +54,9 @@ services:
       start_period: 30s
 
   order-service:
-    build: ./order-service
+    build:
+      context: .
+      dockerfile: order-service/Dockerfile
     ports:
       - "8081:8081"
     environment:
@@ -73,7 +75,9 @@ services:
         condition: service_healthy
 
   payment-service:
-    build: ./payment-service
+    build:
+      context: .
+      dockerfile: payment-service/Dockerfile
     ports:
       - "8082:8082"
     environment:
@@ -89,7 +93,9 @@ services:
         condition: service_healthy
 
   inventory-service:
-    build: ./inventory-service
+    build:
+      context: .
+      dockerfile: inventory-service/Dockerfile
     ports:
       - "8083:8083"
     environment:
@@ -108,7 +114,9 @@ services:
         condition: service_healthy
 
   notification-service:
-    build: ./notification-service
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
     ports:
       - "8084:8084"
     environment:
@@ -119,7 +127,9 @@ services:
         condition: service_healthy
 
   api-gateway:
-    build: ./api-gateway
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
     ports:
       - "8080:8080"
     environment:

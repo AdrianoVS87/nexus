@@ -1,5 +1,25 @@
+# --- Build stage ---
+FROM eclipse-temurin:21-jdk-alpine AS build
+WORKDIR /workspace
+RUN apk add --no-cache maven
+
+COPY pom.xml .
+COPY nexus-common/pom.xml nexus-common/
+COPY api-gateway/pom.xml api-gateway/
+
+# Download dependencies (cached layer)
+RUN mvn dependency:go-offline -pl api-gateway -am -B -q || true
+
+COPY nexus-common/src nexus-common/src
+COPY api-gateway/src api-gateway/src
+
+RUN mvn package -pl api-gateway -am -DskipTests -B -q
+
+# --- Runtime stage ---
 FROM eclipse-temurin:21-jre-alpine
+RUN addgroup -S nexus && adduser -S nexus -G nexus
 WORKDIR /app
-COPY target/*.jar app.jar
+COPY --from=build /workspace/api-gateway/target/*.jar app.jar
+USER nexus
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
