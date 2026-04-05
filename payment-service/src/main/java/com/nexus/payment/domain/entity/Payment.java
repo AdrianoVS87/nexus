@@ -22,6 +22,9 @@ public class Payment {
     @Column(name = "order_id", nullable = false)
     private UUID orderId;
 
+    @Column(name = "user_id")
+    private UUID userId;
+
     @Column(name = "idempotency_key", nullable = false, unique = true)
     private String idempotencyKey;
 

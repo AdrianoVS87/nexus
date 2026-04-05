@@ -30,6 +30,7 @@ public class PaymentController {
     public record PaymentResponse(
             UUID id,
             UUID orderId,
+            UUID userId,
             java.math.BigDecimal amount,
             String currency,
             String status,
@@ -40,6 +41,7 @@ public class PaymentController {
             return new PaymentResponse(
                     payment.getId(),
                     payment.getOrderId(),
+                    payment.getUserId(),
                     payment.getAmount(),
                     payment.getCurrency(),
                     payment.getStatus().name(),

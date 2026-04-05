@@ -64,6 +64,7 @@ class PaymentServiceTest {
         return Payment.builder()
                 .id(UUID.randomUUID())
                 .orderId(orderId)
+                .userId(UUID.randomUUID())
                 .idempotencyKey(UUID.randomUUID().toString())
                 .amount(new BigDecimal("50.00"))
                 .currency("USD")
@@ -173,6 +174,7 @@ class PaymentServiceTest {
         assertThat(eventCaptor.getValue()).isInstanceOf(PaymentFailed.class);
         PaymentFailed failed = (PaymentFailed) eventCaptor.getValue();
         assertThat(failed.reason()).contains("Invalid payment amount");
+        assertThat(failed.userId()).isNotNull();
 
         verify(paymentRepository, never()).save(any());
     }

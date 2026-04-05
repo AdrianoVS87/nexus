@@ -64,6 +64,7 @@ public class PaymentService {
 
         var payment = Payment.builder()
                 .orderId(event.orderId())
+                .userId(event.userId())
                 .idempotencyKey(event.idempotencyKey())
                 .amount(event.amount())
                 .currency(event.currency())
@@ -119,7 +120,7 @@ public class PaymentService {
             var completed = new PaymentCompleted(payment.getId(), payment.getOrderId(), payment.getAmount(), Instant.now());
             sendEvent(orderId, completed, "PaymentCompleted");
         } else if (payment.getStatus() == PaymentStatus.FAILED) {
-            var failed = new PaymentFailed(payment.getOrderId(), null, DECLINE_REASON, Instant.now());
+            var failed = new PaymentFailed(payment.getOrderId(), payment.getUserId(), DECLINE_REASON, Instant.now());
             sendEvent(orderId, failed, "PaymentFailed");
         }
     }
