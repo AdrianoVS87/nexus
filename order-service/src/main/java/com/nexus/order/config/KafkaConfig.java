@@ -1,6 +1,6 @@
 package com.nexus.order.config;
 
-import com.nexus.order.domain.event.*;
+import com.nexus.common.event.*;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;

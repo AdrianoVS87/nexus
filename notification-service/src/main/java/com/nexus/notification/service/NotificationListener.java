@@ -1,8 +1,8 @@
 package com.nexus.notification.service;
 
-import com.nexus.notification.domain.event.OrderCancelled;
-import com.nexus.notification.domain.event.OrderConfirmed;
-import com.nexus.notification.domain.event.PaymentFailed;
+import com.nexus.common.event.OrderCancelled;
+import com.nexus.common.event.OrderConfirmed;
+import com.nexus.common.event.PaymentFailed;
 import com.nexus.notification.websocket.OrderStatusWebSocketHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,8 +1,8 @@
 package com.nexus.notification.service;
 
-import com.nexus.notification.domain.event.OrderCancelled;
-import com.nexus.notification.domain.event.OrderConfirmed;
-import com.nexus.notification.domain.event.PaymentFailed;
+import com.nexus.common.event.OrderCancelled;
+import com.nexus.common.event.OrderConfirmed;
+import com.nexus.common.event.PaymentFailed;
 import com.nexus.notification.websocket.OrderStatusWebSocketHandler;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.DisplayName;

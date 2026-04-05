@@ -1,4 +1,4 @@
-package com.nexus.inventory.domain.event;
+package com.nexus.common.event;
 
 import java.time.Instant;
 import java.util.List;

@@ -2,10 +2,10 @@ package com.nexus.order.saga;
 
 import com.nexus.order.domain.entity.Order;
 import com.nexus.order.domain.enums.OrderStatus;
-import com.nexus.order.domain.event.InventoryInsufficient;
-import com.nexus.order.domain.event.InventoryReserved;
-import com.nexus.order.domain.event.PaymentCompleted;
-import com.nexus.order.domain.event.PaymentFailed;
+import com.nexus.common.event.InventoryInsufficient;
+import com.nexus.common.event.InventoryReserved;
+import com.nexus.common.event.PaymentCompleted;
+import com.nexus.common.event.PaymentFailed;
 import com.nexus.order.repository.OrderRepository;
 import com.nexus.order.service.OrderEventPublisher;
 import com.nexus.order.service.OrderNotFoundException;
@@ -112,7 +112,7 @@ class OrderSagaListenerTest {
         @DisplayName("transitions PAYMENT_REQUESTED → CANCELLED and publishes cancellation")
         void happyPath() {
             var order = orderInStatus(OrderStatus.PAYMENT_REQUESTED);
-            var event = new PaymentFailed(orderId, "Insufficient funds", Instant.now());
+            var event = new PaymentFailed(orderId, userId, "Insufficient funds", Instant.now());
             var record = new ConsumerRecord<String, Object>("payments", 0, 0, orderId.toString(), event);
 
             when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
@@ -128,7 +128,7 @@ class OrderSagaListenerTest {
         @DisplayName("ignores replay when order already cancelled")
         void replayIdempotency() {
             var order = orderInStatus(OrderStatus.CANCELLED);
-            var event = new PaymentFailed(orderId, "Insufficient funds", Instant.now());
+            var event = new PaymentFailed(orderId, userId, "Insufficient funds", Instant.now());
             var record = new ConsumerRecord<String, Object>("payments", 0, 0, orderId.toString(), event);
 
             when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));

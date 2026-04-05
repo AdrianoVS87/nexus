@@ -1,4 +1,4 @@
-package com.nexus.order.domain.event;
+package com.nexus.common.event;
 
 import java.math.BigDecimal;
 import java.time.Instant;

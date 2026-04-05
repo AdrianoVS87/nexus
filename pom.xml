@@ -19,6 +19,7 @@
     <description>Event-driven e-commerce microservices platform</description>
 
     <modules>
+        <module>nexus-common</module>
         <module>order-service</module>
         <module>payment-service</module>
         <module>inventory-service</module>

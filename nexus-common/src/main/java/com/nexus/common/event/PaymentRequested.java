@@ -1,13 +1,14 @@
-package com.nexus.order.domain.event;
+package com.nexus.common.event;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-public record PaymentRefundRequested(
+public record PaymentRequested(
         UUID orderId,
         UUID userId,
         BigDecimal amount,
-        String reason,
+        String currency,
+        String idempotencyKey,
         Instant timestamp
 ) {}

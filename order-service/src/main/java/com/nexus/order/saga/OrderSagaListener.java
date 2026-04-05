@@ -1,7 +1,7 @@
 package com.nexus.order.saga;
 
 import com.nexus.order.domain.enums.OrderStatus;
-import com.nexus.order.domain.event.*;
+import com.nexus.common.event.*;
 import com.nexus.order.repository.OrderRepository;
 import com.nexus.order.service.OrderEventPublisher;
 import com.nexus.order.service.OrderNotFoundException;

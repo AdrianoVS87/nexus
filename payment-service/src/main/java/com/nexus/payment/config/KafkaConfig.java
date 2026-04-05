@@ -1,9 +1,9 @@
 package com.nexus.payment.config;
 
-import com.nexus.payment.domain.event.PaymentCompleted;
-import com.nexus.payment.domain.event.PaymentFailed;
-import com.nexus.payment.domain.event.PaymentRefundRequested;
-import com.nexus.payment.domain.event.PaymentRequested;
+import com.nexus.common.event.PaymentCompleted;
+import com.nexus.common.event.PaymentFailed;
+import com.nexus.common.event.PaymentRefundRequested;
+import com.nexus.common.event.PaymentRequested;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;

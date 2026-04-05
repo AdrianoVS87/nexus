@@ -2,10 +2,10 @@ package com.nexus.payment.service;
 
 import com.nexus.payment.domain.entity.Payment;
 import com.nexus.payment.domain.entity.Payment.PaymentStatus;
-import com.nexus.payment.domain.event.PaymentCompleted;
-import com.nexus.payment.domain.event.PaymentFailed;
-import com.nexus.payment.domain.event.PaymentRefundRequested;
-import com.nexus.payment.domain.event.PaymentRequested;
+import com.nexus.common.event.PaymentCompleted;
+import com.nexus.common.event.PaymentFailed;
+import com.nexus.common.event.PaymentRefundRequested;
+import com.nexus.common.event.PaymentRequested;
 import com.nexus.payment.repository.PaymentRepository;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
@@ -179,7 +179,7 @@ class PaymentServiceTest {
 
     @Test
     void handleRefundRequested_refundsCompletedPayment() {
-        var event = new PaymentRefundRequested(orderId, "Customer requested", Instant.now());
+        var event = new PaymentRefundRequested(orderId, UUID.randomUUID(), java.math.BigDecimal.TEN, "Customer requested", Instant.now());
         var record = new ConsumerRecord<String, Object>("payments", 0, 0, orderId.toString(), event);
 
         Payment payment = basePayment().status(PaymentStatus.COMPLETED).build();
@@ -195,7 +195,7 @@ class PaymentServiceTest {
 
     @Test
     void handleRefundRequested_ignoresAlreadyRefunded() {
-        var event = new PaymentRefundRequested(orderId, "Customer requested", Instant.now());
+        var event = new PaymentRefundRequested(orderId, UUID.randomUUID(), java.math.BigDecimal.TEN, "Customer requested", Instant.now());
         var record = new ConsumerRecord<String, Object>("payments", 0, 0, orderId.toString(), event);
 
         Payment payment = basePayment().status(PaymentStatus.REFUNDED).build();
@@ -209,7 +209,7 @@ class PaymentServiceTest {
 
     @Test
     void handleRefundRequested_rejectsNonCompletedPayment() {
-        var event = new PaymentRefundRequested(orderId, "Customer requested", Instant.now());
+        var event = new PaymentRefundRequested(orderId, UUID.randomUUID(), java.math.BigDecimal.TEN, "Customer requested", Instant.now());
         var record = new ConsumerRecord<String, Object>("payments", 0, 0, orderId.toString(), event);
 
         Payment payment = basePayment().status(PaymentStatus.FAILED).build();
@@ -223,7 +223,7 @@ class PaymentServiceTest {
 
     @Test
     void handleRefundRequested_handlesNonExistentPayment() {
-        var event = new PaymentRefundRequested(orderId, "Customer requested", Instant.now());
+        var event = new PaymentRefundRequested(orderId, UUID.randomUUID(), java.math.BigDecimal.TEN, "Customer requested", Instant.now());
         var record = new ConsumerRecord<String, Object>("payments", 0, 0, orderId.toString(), event);
 
         when(paymentRepository.findByOrderId(orderId)).thenReturn(Optional.empty());

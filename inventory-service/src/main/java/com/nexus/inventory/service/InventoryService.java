@@ -4,10 +4,10 @@ import com.nexus.inventory.config.GlobalExceptionHandler.ProductNotFoundExceptio
 import com.nexus.inventory.domain.entity.Product;
 import com.nexus.inventory.domain.entity.StockReservation;
 import com.nexus.inventory.domain.entity.StockReservation.ReservationStatus;
-import com.nexus.inventory.domain.event.InventoryInsufficient;
-import com.nexus.inventory.domain.event.InventoryReserveRequested;
-import com.nexus.inventory.domain.event.InventoryReserved;
-import com.nexus.inventory.domain.event.OrderCancelled;
+import com.nexus.common.event.InventoryInsufficient;
+import com.nexus.common.event.InventoryReserveRequested;
+import com.nexus.common.event.InventoryReserved;
+import com.nexus.common.event.OrderCancelled;
 import com.nexus.inventory.dto.ProductResponse;
 import com.nexus.inventory.repository.ProductRepository;
 import com.nexus.inventory.repository.StockReservationRepository;

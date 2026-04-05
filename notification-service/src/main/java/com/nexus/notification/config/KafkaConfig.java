@@ -1,9 +1,9 @@
 package com.nexus.notification.config;
 
-import com.nexus.notification.domain.event.OrderCancelled;
-import com.nexus.notification.domain.event.OrderConfirmed;
-import com.nexus.notification.domain.event.OrderCreated;
-import com.nexus.notification.domain.event.PaymentFailed;
+import com.nexus.common.event.OrderCancelled;
+import com.nexus.common.event.OrderConfirmed;
+import com.nexus.common.event.OrderCreated;
+import com.nexus.common.event.PaymentFailed;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;

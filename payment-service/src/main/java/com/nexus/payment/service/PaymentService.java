@@ -2,10 +2,10 @@ package com.nexus.payment.service;
 
 import com.nexus.payment.domain.entity.Payment;
 import com.nexus.payment.domain.entity.Payment.PaymentStatus;
-import com.nexus.payment.domain.event.PaymentCompleted;
-import com.nexus.payment.domain.event.PaymentFailed;
-import com.nexus.payment.domain.event.PaymentRefundRequested;
-import com.nexus.payment.domain.event.PaymentRequested;
+import com.nexus.common.event.PaymentCompleted;
+import com.nexus.common.event.PaymentFailed;
+import com.nexus.common.event.PaymentRefundRequested;
+import com.nexus.common.event.PaymentRequested;
 import com.nexus.payment.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,7 +50,7 @@ public class PaymentService {
 
         if (event.amount() == null || event.amount().compareTo(BigDecimal.ZERO) <= 0) {
             log.error("Invalid payment amount: orderId={}, amount={}", event.orderId(), event.amount());
-            var failed = new PaymentFailed(event.orderId(), "Invalid payment amount", Instant.now());
+            var failed = new PaymentFailed(event.orderId(), event.userId(), "Invalid payment amount", Instant.now());
             sendEvent(event.orderId().toString(), failed, "PaymentFailed");
             return;
         }
@@ -82,7 +82,7 @@ public class PaymentService {
             payment.setStatus(PaymentStatus.FAILED);
             paymentRepository.save(payment);
 
-            var failed = new PaymentFailed(event.orderId(), DECLINE_REASON, Instant.now());
+            var failed = new PaymentFailed(event.orderId(), event.userId(), DECLINE_REASON, Instant.now());
             sendEvent(event.orderId().toString(), failed, "PaymentFailed");
             log.info("Payment failed: orderId={}", event.orderId());
         }
@@ -119,7 +119,7 @@ public class PaymentService {
             var completed = new PaymentCompleted(payment.getId(), payment.getOrderId(), payment.getAmount(), Instant.now());
             sendEvent(orderId, completed, "PaymentCompleted");
         } else if (payment.getStatus() == PaymentStatus.FAILED) {
-            var failed = new PaymentFailed(payment.getOrderId(), DECLINE_REASON, Instant.now());
+            var failed = new PaymentFailed(payment.getOrderId(), null, DECLINE_REASON, Instant.now());
             sendEvent(orderId, failed, "PaymentFailed");
         }
     }

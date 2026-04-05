@@ -1,7 +1,7 @@
 package com.nexus.order.service;
 
 import com.nexus.order.domain.entity.Order;
-import com.nexus.order.domain.event.*;
+import com.nexus.common.event.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
