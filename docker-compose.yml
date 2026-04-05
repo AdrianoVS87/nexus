@@ -127,6 +127,9 @@ services:
       SPRING_DATA_REDIS_HOST: redis
       ORDER_SERVICE_URL: http://order-service:8081
       INVENTORY_SERVICE_URL: http://inventory-service:8083
+      GATEWAY_JWT_KEYPAIR_PATH: /data/jwt-keypair
+    volumes:
+      - gateway_data:/data
     depends_on:
       redis:
         condition: service_healthy
@@ -167,3 +170,4 @@ volumes:
   redis_data:
   prometheus_data:
   grafana_data:
+  gateway_data:
