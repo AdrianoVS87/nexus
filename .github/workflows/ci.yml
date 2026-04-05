@@ -24,6 +24,16 @@ jobs:
           --health-timeout 3s
           --health-retries 5
 
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
@@ -34,12 +44,21 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Create schemas
+      - name: Create database schemas
         run: |
-          PGPASSWORD=nexus psql -h localhost -U nexus -d nexus -c "CREATE SCHEMA IF NOT EXISTS orders; CREATE SCHEMA IF NOT EXISTS payments; CREATE SCHEMA IF NOT EXISTS inventory;"
+          PGPASSWORD=nexus psql -h localhost -U nexus -d nexus -c \
+            "CREATE SCHEMA IF NOT EXISTS orders; CREATE SCHEMA IF NOT EXISTS payments; CREATE SCHEMA IF NOT EXISTS inventory;"
 
       - name: Build and test
         run: mvn clean verify -B
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/target/surefire-reports/*.xml'
+          retention-days: 7
 
   build-frontend:
     runs-on: ubuntu-latest
