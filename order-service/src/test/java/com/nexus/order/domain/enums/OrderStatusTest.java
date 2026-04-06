@@ -20,6 +20,7 @@ class OrderStatusTest {
             "PAYMENT_COMPLETED, INVENTORY_REQUESTED",
             "INVENTORY_REQUESTED, CONFIRMED",
             "INVENTORY_REQUESTED, REFUND_REQUESTED",
+            "CONFIRMED, CANCELLED",
             "REFUND_REQUESTED, CANCELLED",
     })
     void validTransitions(OrderStatus from, OrderStatus to) {
@@ -34,7 +35,6 @@ class OrderStatusTest {
             "PENDING, INVENTORY_REQUESTED",
             "PAYMENT_REQUESTED, CONFIRMED",
             "PAYMENT_COMPLETED, CANCELLED",
-            "CONFIRMED, CANCELLED",
             "CANCELLED, PENDING",
             "CONFIRMED, PENDING",
     })
@@ -45,9 +45,14 @@ class OrderStatusTest {
     }
 
     @Test
-    @DisplayName("Terminal states have no outgoing transitions")
-    void terminalStatesHaveNoTransitions() {
-        assertThat(CONFIRMED.getAllowedTransitions()).isEmpty();
+    @DisplayName("CANCELLED is terminal — no outgoing transitions")
+    void cancelledIsTerminal() {
         assertThat(CANCELLED.getAllowedTransitions()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("CONFIRMED allows only cancellation")
+    void confirmedAllowsOnlyCancellation() {
+        assertThat(CONFIRMED.getAllowedTransitions()).containsExactly(CANCELLED);
     }
 }

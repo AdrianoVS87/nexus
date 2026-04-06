@@ -72,6 +72,30 @@ public class OrderService {
                 .map(OrderResponse::from);
     }
 
+    /**
+     * User-initiated order cancellation. Triggers compensation saga:
+     * refund payment if completed, release inventory if reserved.
+     */
+    @Transactional
+    public OrderResponse cancelOrder(UUID orderId, String reason) {
+        var order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
+
+        var previousStatus = order.getStatus();
+        order.transitionTo(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+
+        // Trigger compensation based on how far the saga progressed
+        if (previousStatus == OrderStatus.CONFIRMED || previousStatus == OrderStatus.INVENTORY_REQUESTED) {
+            eventPublisher.publishPaymentRefundRequested(order, "User cancelled: " + reason);
+        }
+        eventPublisher.publishOrderCancelled(order.getId(), order.getUserId(), reason);
+
+        log.info("Order cancelled by user: orderId={}, previousStatus={}, reason={}",
+                orderId, previousStatus, reason);
+        return OrderResponse.from(order);
+    }
+
     @Transactional
     public void updateOrderStatus(UUID orderId, OrderStatus target) {
         var order = orderRepository.findById(orderId)

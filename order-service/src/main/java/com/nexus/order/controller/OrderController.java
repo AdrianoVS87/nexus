@@ -1,5 +1,6 @@
 package com.nexus.order.controller;
 
+import com.nexus.order.dto.CancelOrderRequest;
 import com.nexus.order.dto.CreateOrderRequest;
 import com.nexus.order.dto.OrderResponse;
 import com.nexus.order.service.OrderService;
@@ -29,6 +30,15 @@ public class OrderController {
     @GetMapping("/{id}")
     public ResponseEntity<OrderResponse> getOrder(@PathVariable UUID id) {
         return ResponseEntity.ok(orderService.getOrder(id));
+    }
+
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<OrderResponse> cancelOrder(
+            @PathVariable UUID id,
+            @RequestBody(required = false) CancelOrderRequest request
+    ) {
+        String reason = (request != null && request.reason() != null) ? request.reason() : "No reason provided";
+        return ResponseEntity.ok(orderService.cancelOrder(id, reason));
     }
 
     @GetMapping
