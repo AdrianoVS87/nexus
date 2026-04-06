@@ -8,7 +8,9 @@ import com.nexus.common.event.InventoryInsufficient;
 import com.nexus.common.event.InventoryReserveRequested;
 import com.nexus.common.event.InventoryReserved;
 import com.nexus.common.event.OrderCancelled;
+import com.nexus.inventory.dto.CreateProductRequest;
 import com.nexus.inventory.dto.ProductResponse;
+import com.nexus.inventory.dto.UpdateProductRequest;
 import com.nexus.inventory.repository.ProductRepository;
 import com.nexus.inventory.repository.StockReservationRepository;
 import lombok.RequiredArgsConstructor;
@@ -93,6 +95,57 @@ public class InventoryService {
         var response = ProductResponse.from(product);
         syncProductToRedis(product);
         return response;
+    }
+
+    // ── CRUD Write Operations ─────────────────────────────────────────
+
+    @Transactional
+    public ProductResponse createProduct(CreateProductRequest request) {
+        var product = Product.builder()
+                .name(request.name())
+                .description(request.description())
+                .price(request.price())
+                .stockQuantity(request.stockQuantity())
+                .build();
+
+        product = productRepository.save(product);
+        syncProductToRedis(product);
+        invalidateAllProductsCache();
+
+        log.info("Product created: id={}, name={}", product.getId(), product.getName());
+        return ProductResponse.from(product);
+    }
+
+    @Transactional
+    public ProductResponse updateProduct(UUID id, UpdateProductRequest request) {
+        var product = productRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException("Product not found: " + id));
+
+        if (request.name() != null) product.setName(request.name());
+        if (request.description() != null) product.setDescription(request.description());
+        if (request.price() != null) product.setPrice(request.price());
+        if (request.stockQuantity() != null) product.setStockQuantity(request.stockQuantity());
+
+        product = productRepository.save(product);
+        syncProductToRedis(product);
+        invalidateAllProductsCache();
+
+        log.info("Product updated: id={}, name={}", product.getId(), product.getName());
+        return ProductResponse.from(product);
+    }
+
+    @Transactional
+    public void deleteProduct(UUID id) {
+        var product = productRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException("Product not found: " + id));
+        productRepository.delete(product);
+        try {
+            redisTemplate.delete(PRODUCT_CACHE_KEY + id);
+        } catch (Exception e) {
+            log.warn("Failed to remove product {} from Redis: {}", id, e.getMessage());
+        }
+        invalidateAllProductsCache();
+        log.info("Product deleted: id={}", id);
     }
 
     // ── Kafka Event Handlers ──────────────────────────────────────────
