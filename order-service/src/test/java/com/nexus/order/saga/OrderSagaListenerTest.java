@@ -6,6 +6,7 @@ import com.nexus.common.event.InventoryInsufficient;
 import com.nexus.common.event.InventoryReserved;
 import com.nexus.common.event.PaymentCompleted;
 import com.nexus.common.event.PaymentFailed;
+import com.nexus.order.metrics.SagaMetrics;
 import com.nexus.order.repository.OrderRepository;
 import com.nexus.order.service.OrderEventPublisher;
 import com.nexus.order.service.OrderNotFoundException;
@@ -41,6 +42,9 @@ class OrderSagaListenerTest {
 
     @Mock
     private OrderEventPublisher eventPublisher;
+
+    @Mock
+    private SagaMetrics sagaMetrics;
 
     @InjectMocks
     private OrderSagaListener sagaListener;

@@ -5,6 +5,7 @@ import com.nexus.order.domain.entity.OrderItem;
 import com.nexus.order.domain.enums.OrderStatus;
 import com.nexus.order.dto.CreateOrderRequest;
 import com.nexus.order.dto.OrderResponse;
+import com.nexus.order.metrics.SagaMetrics;
 import com.nexus.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderEventPublisher eventPublisher;
+    private final SagaMetrics sagaMetrics;
 
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
@@ -55,6 +57,7 @@ public class OrderService {
         log.info("Order created: orderId={}, userId={}, total={}", order.getId(), order.getUserId(), total);
 
         eventPublisher.publishOrderCreated(order);
+        sagaMetrics.recordOrderCreated();
 
         return OrderResponse.from(order);
     }

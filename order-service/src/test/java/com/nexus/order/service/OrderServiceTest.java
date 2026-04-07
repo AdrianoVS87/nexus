@@ -5,6 +5,7 @@ import com.nexus.order.domain.enums.OrderStatus;
 import com.nexus.order.dto.CreateOrderRequest;
 import com.nexus.order.dto.CreateOrderRequest.OrderItemRequest;
 import com.nexus.order.dto.OrderResponse;
+import com.nexus.order.metrics.SagaMetrics;
 import com.nexus.order.repository.OrderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,6 +40,9 @@ class OrderServiceTest {
 
     @Mock
     private OrderEventPublisher eventPublisher;
+
+    @Mock
+    private SagaMetrics sagaMetrics;
 
     @InjectMocks
     private OrderService orderService;

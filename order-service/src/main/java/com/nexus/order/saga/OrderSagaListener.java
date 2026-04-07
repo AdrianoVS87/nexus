@@ -2,6 +2,7 @@ package com.nexus.order.saga;
 
 import com.nexus.order.domain.enums.OrderStatus;
 import com.nexus.common.event.*;
+import com.nexus.order.metrics.SagaMetrics;
 import com.nexus.order.repository.OrderRepository;
 import com.nexus.order.service.OrderEventPublisher;
 import com.nexus.order.service.OrderNotFoundException;
@@ -28,6 +29,7 @@ public class OrderSagaListener {
 
     private final OrderRepository orderRepository;
     private final OrderEventPublisher eventPublisher;
+    private final SagaMetrics sagaMetrics;
 
     @KafkaListener(topics = "payments", groupId = "order-saga")
     @Transactional
@@ -68,6 +70,7 @@ public class OrderSagaListener {
         orderRepository.save(order);
 
         eventPublisher.publishInventoryReserveRequested(order);
+        sagaMetrics.recordPaymentSucceeded();
     }
 
     private void handlePaymentFailed(PaymentFailed event) {
@@ -85,6 +88,8 @@ public class OrderSagaListener {
 
         eventPublisher.publishOrderCancelled(order.getId(), order.getUserId(),
                 "Payment failed: " + event.reason());
+        sagaMetrics.recordPaymentFailed();
+        sagaMetrics.recordSagaCancelled();
     }
 
     private void handleInventoryReserved(InventoryReserved event) {
@@ -101,6 +106,8 @@ public class OrderSagaListener {
         orderRepository.save(order);
 
         eventPublisher.publishOrderConfirmed(order.getId(), order.getUserId());
+        sagaMetrics.recordInventoryReserved();
+        sagaMetrics.recordSagaConfirmed();
     }
 
     private void handleInventoryInsufficient(InventoryInsufficient event) {
@@ -121,6 +128,8 @@ public class OrderSagaListener {
 
         eventPublisher.publishOrderCancelled(order.getId(), order.getUserId(),
                 "Inventory insufficient: " + event.reason());
+        sagaMetrics.recordInventoryInsufficient();
+        sagaMetrics.recordSagaCancelled();
     }
 
     private com.nexus.order.domain.entity.Order findOrder(UUID orderId) {
