@@ -28,6 +28,10 @@ spring:
                 redis-rate-limiter.replenishRate: 20
                 redis-rate-limiter.burstCapacity: 40
                 key-resolver: "#{@ipKeyResolver}"
+        - id: notification-service
+          uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/v1/notifications/**
         - id: notification-service-ws
           uri: ${NOTIFICATION_WS_URL:ws://localhost:8084}
           predicates:
