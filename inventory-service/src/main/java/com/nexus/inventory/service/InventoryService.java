@@ -97,6 +97,18 @@ public class InventoryService {
         return response;
     }
 
+    /**
+     * Search products with optional filters. Results are always fresh from
+     * PostgreSQL since search queries bypass the Redis cache.
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<ProductResponse> searchProducts(
+            String name, java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice,
+            Boolean inStock, org.springframework.data.domain.Pageable pageable) {
+        return productRepository.search(name, minPrice, maxPrice, inStock, pageable)
+                .map(ProductResponse::from);
+    }
+
     // ── CRUD Write Operations ─────────────────────────────────────────
 
     @Transactional
