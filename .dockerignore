@@ -1,0 +1,22 @@
+# Build artifacts
+**/target/
+web/node_modules/
+web/dist/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Git
+.git/
+.gitignore
+
+# Docker
+docker-compose.yml
+.dockerignore
+
+# Docs
+docs/
+*.md
+LICENSE

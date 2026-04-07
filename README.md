@@ -217,15 +217,17 @@ See [docs/API.md](docs/API.md) for the full API reference.
 
 ```
 nexus/
+├── nexus-common/           # Shared domain events + correlation filter
 ├── order-service/          # Saga orchestrator + order management
 ├── payment-service/        # Payment processing with idempotency
-├── inventory-service/      # CQRS stock management
+├── inventory-service/      # CQRS stock management + product CRUD
 ├── notification-service/   # WebSocket + email notifications
 ├── api-gateway/            # JWT auth + rate limiting + routing
 ├── web/                    # React frontend
 ├── infra/                  # Prometheus + Grafana configs
+├── docs/                   # API reference + ADRs
 ├── .github/workflows/      # CI pipeline
-└── docker-compose.yml      # Full stack orchestration
+└── docker-compose.yml      # Full stack orchestration (12 containers)
 ```
 
 ## License
