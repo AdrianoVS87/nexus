@@ -173,6 +173,7 @@ services:
       ORDER_SERVICE_URL: http://order-service:8081
       INVENTORY_SERVICE_URL: http://inventory-service:8083
       NOTIFICATION_SERVICE_URL: http://notification-service:8084
+      CORS_ALLOWED_ORIGIN: https://nexus-one.vercel.app
       GATEWAY_JWT_KEYPAIR_PATH: /data/jwt-keypair
     volumes:
       - gateway_data:/data
