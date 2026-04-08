@@ -47,7 +47,10 @@ jobs:
       - name: Create database schemas
         run: |
           PGPASSWORD=nexus psql -h localhost -U nexus -d nexus -c \
-            "CREATE SCHEMA IF NOT EXISTS orders; CREATE SCHEMA IF NOT EXISTS payments; CREATE SCHEMA IF NOT EXISTS inventory;"
+            "CREATE SCHEMA IF NOT EXISTS orders;
+             CREATE SCHEMA IF NOT EXISTS payments;
+             CREATE SCHEMA IF NOT EXISTS inventory;
+             CREATE SCHEMA IF NOT EXISTS notifications;"
 
       - name: Build and test
         run: mvn clean verify -B
@@ -81,6 +84,9 @@ jobs:
 
       - name: Type check
         run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm test
 
       - name: Build
         run: npm run build
