@@ -103,7 +103,7 @@ export default function ProductCatalog() {
           <div className="h-8 w-40 rounded bg-surface-border/50 animate-pulse" />
           <div className="mt-2 h-4 w-72 rounded bg-surface-border/30 animate-pulse" />
         </div>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (
             <SkeletonCard key={i} />
           ))}
@@ -155,7 +155,7 @@ export default function ProductCatalog() {
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       >
         {products.map((product, i) => (
           <motion.div

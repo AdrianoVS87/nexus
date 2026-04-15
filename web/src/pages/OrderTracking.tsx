@@ -178,7 +178,89 @@ export default function OrderTracking() {
         {/* Timeline */}
         <div className="lg:col-span-2 rounded-2xl border border-surface-border bg-surface-card p-6">
           <h2 className="text-lg font-semibold text-white mb-6">Status Timeline</h2>
-          <div className="relative ml-4">
+
+          {/* Horizontal timeline — desktop */}
+          <div className="hidden lg:block">
+            <div className="flex items-start justify-between">
+              {STEPS.map((step, i) => {
+                const isActive = i <= currentStepIndex && !terminalSteps;
+                const isCurrent = i === currentStepIndex && !terminalSteps;
+                const isPast = i < currentStepIndex && !terminalSteps;
+
+                return (
+                  <div key={step} className="flex flex-1 flex-col items-center text-center relative">
+                    {/* Connector line */}
+                    {i < STEPS.length - 1 && (
+                      <div className="absolute top-3 left-1/2 w-full h-0.5">
+                        <div
+                          className={`h-full w-full transition-colors duration-500 ${
+                            isPast ? 'bg-nexus-500' : 'bg-surface-border'
+                          }`}
+                        />
+                      </div>
+                    )}
+                    {/* Dot */}
+                    <motion.div
+                      initial={{ scale: 0.8 }}
+                      animate={{ scale: 1 }}
+                      className={`relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-500 ${
+                        isCurrent
+                          ? 'border-nexus-400 bg-nexus-500 shadow-lg shadow-nexus-500/30'
+                          : isPast
+                            ? 'border-nexus-500 bg-nexus-600'
+                            : 'border-surface-border-light bg-surface-bg'
+                      }`}
+                    >
+                      {isPast && (
+                        <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                      )}
+                      {isCurrent && (
+                        <div className="h-2 w-2 rounded-full bg-white animate-pulse" />
+                      )}
+                    </motion.div>
+                    {/* Label */}
+                    <p
+                      className={`mt-2 text-xs font-medium transition-colors duration-500 ${
+                        isActive ? 'text-white' : 'text-gray-500'
+                      }`}
+                    >
+                      {STEP_LABELS[step]}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+            {terminalSteps && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center justify-center gap-2 mt-6 pt-4 border-t border-surface-border"
+              >
+                <div
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${
+                    isCancelled
+                      ? 'border-red-400 bg-red-500 shadow-lg shadow-red-500/30'
+                      : 'border-orange-400 bg-orange-500 shadow-lg shadow-orange-500/30'
+                  }`}
+                >
+                  <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+                <p className={`font-medium ${isCancelled ? 'text-red-400' : 'text-orange-400'}`}>
+                  {STEP_LABELS[order.status]}
+                </p>
+                <p className="text-xs text-gray-500 ml-2">
+                  {new Date(order.updatedAt).toLocaleString()}
+                </p>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Vertical timeline — mobile/tablet */}
+          <div className="relative ml-4 lg:hidden">
             {STEPS.map((step, i) => {
               const isActive = i <= currentStepIndex && !terminalSteps;
               const isCurrent = i === currentStepIndex && !terminalSteps;
