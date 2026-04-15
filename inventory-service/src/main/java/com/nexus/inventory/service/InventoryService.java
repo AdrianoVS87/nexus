@@ -1,6 +1,6 @@
 package com.nexus.inventory.service;
 
-import com.nexus.inventory.config.GlobalExceptionHandler.ProductNotFoundException;
+import com.nexus.inventory.exception.ProductNotFoundException;
 import com.nexus.inventory.domain.entity.Product;
 import com.nexus.inventory.domain.entity.StockReservation;
 import com.nexus.inventory.domain.entity.StockReservation.ReservationStatus;

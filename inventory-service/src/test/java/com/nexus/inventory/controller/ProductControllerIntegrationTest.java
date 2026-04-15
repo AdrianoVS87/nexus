@@ -1,7 +1,7 @@
 package com.nexus.inventory.controller;
 
 import com.nexus.inventory.config.GlobalExceptionHandler;
-import com.nexus.inventory.config.GlobalExceptionHandler.ProductNotFoundException;
+import com.nexus.inventory.exception.ProductNotFoundException;
 import com.nexus.inventory.dto.ProductResponse;
 import com.nexus.inventory.service.InventoryService;
 import org.junit.jupiter.api.DisplayName;
