@@ -167,7 +167,7 @@ export default function ProductCatalog() {
           <motion.div
             key={product.id}
             variants={cardVariants}
-            className="group flex flex-col rounded-2xl border border-surface-border bg-surface-card overflow-hidden hover:border-surface-border-light transition-colors"
+            className="group flex flex-col rounded-2xl border border-surface-border bg-surface-card overflow-hidden hover:border-surface-border-light transition-all duration-150"
           >
             <div
               className={`flex h-44 items-center justify-center bg-gradient-to-br ${getGradient(i)}`}

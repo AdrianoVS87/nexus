@@ -31,11 +31,15 @@ function getStepIndex(status: OrderStatus): number {
 
 function StatusBadge({ status }: { status: OrderStatus }) {
   const colors: Record<string, string> = {
+    PENDING: 'bg-yellow-500/10 text-yellow-400 ring-yellow-500/20',
+    PAYMENT_REQUESTED: 'bg-yellow-500/10 text-yellow-400 ring-yellow-500/20',
+    PAYMENT_COMPLETED: 'bg-blue-500/10 text-blue-400 ring-blue-500/20',
+    INVENTORY_REQUESTED: 'bg-blue-500/10 text-blue-400 ring-blue-500/20',
     CONFIRMED: 'bg-green-500/10 text-green-400 ring-green-500/20',
     CANCELLED: 'bg-red-500/10 text-red-400 ring-red-500/20',
-    REFUND_REQUESTED: 'bg-orange-500/10 text-orange-400 ring-orange-500/20',
+    REFUND_REQUESTED: 'bg-red-500/10 text-red-400 ring-red-500/20',
   };
-  const color = colors[status] ?? 'bg-nexus-500/10 text-nexus-400 ring-nexus-500/20';
+  const color = colors[status] ?? 'bg-yellow-500/10 text-yellow-400 ring-yellow-500/20';
 
   return (
     <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ring-1 ring-inset ${color}`}>

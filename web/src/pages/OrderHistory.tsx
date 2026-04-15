@@ -7,13 +7,13 @@ import { Order, OrderStatus } from '@/types';
 const USER_ID = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
 
 const STATUS_COLORS: Record<OrderStatus, string> = {
-  PENDING: 'bg-gray-500/10 text-gray-400 ring-gray-500/20',
-  PAYMENT_REQUESTED: 'bg-nexus-500/10 text-nexus-400 ring-nexus-500/20',
+  PENDING: 'bg-yellow-500/10 text-yellow-400 ring-yellow-500/20',
+  PAYMENT_REQUESTED: 'bg-yellow-500/10 text-yellow-400 ring-yellow-500/20',
   PAYMENT_COMPLETED: 'bg-blue-500/10 text-blue-400 ring-blue-500/20',
-  INVENTORY_REQUESTED: 'bg-yellow-500/10 text-yellow-400 ring-yellow-500/20',
+  INVENTORY_REQUESTED: 'bg-blue-500/10 text-blue-400 ring-blue-500/20',
   CONFIRMED: 'bg-green-500/10 text-green-400 ring-green-500/20',
   CANCELLED: 'bg-red-500/10 text-red-400 ring-red-500/20',
-  REFUND_REQUESTED: 'bg-orange-500/10 text-orange-400 ring-orange-500/20',
+  REFUND_REQUESTED: 'bg-red-500/10 text-red-400 ring-red-500/20',
 };
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -143,7 +143,7 @@ export default function OrderHistory() {
                   <motion.tr
                     key={order.id}
                     variants={rowVariants}
-                    className="border-b border-surface-border/50 last:border-0 hover:bg-white/[0.02] transition-colors"
+                    className="border-b border-surface-border/50 last:border-0 hover:bg-white/[0.02] transition-all duration-150"
                   >
                     <td className="px-6 py-4 font-mono text-sm text-gray-300">
                       {truncateId(order.id)}
@@ -181,7 +181,7 @@ export default function OrderHistory() {
               <Link
                 key={order.id}
                 to={`/orders/${order.id}`}
-                className="flex items-center justify-between px-4 py-4 min-h-[72px] hover:bg-white/[0.02] transition-colors"
+                className="flex items-center justify-between px-4 py-4 min-h-[72px] hover:bg-white/[0.02] transition-all duration-150"
               >
                 <div>
                   <p className="font-mono text-sm text-gray-300">{truncateId(order.id)}</p>
