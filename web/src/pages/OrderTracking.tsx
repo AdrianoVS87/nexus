@@ -146,7 +146,13 @@ export default function OrderTracking() {
           </svg>
         </div>
         <p className="text-lg font-medium">{error ?? 'Order not found'}</p>
-        <Link to="/orders" className="mt-4 text-nexus-400 hover:text-nexus-300 transition-colors min-h-[44px] flex items-center">
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 min-h-[44px] rounded-xl bg-nexus-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-nexus-500 transition-all duration-150"
+        >
+          Retry
+        </button>
+        <Link to="/orders" className="mt-2 text-nexus-400 hover:text-nexus-300 transition-colors min-h-[44px] flex items-center">
           &larr; Back to orders
         </Link>
       </div>

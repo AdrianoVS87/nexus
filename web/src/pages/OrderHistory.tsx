@@ -87,6 +87,12 @@ export default function OrderHistory() {
           </svg>
         </div>
         <p className="text-lg font-medium">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 min-h-[44px] rounded-xl bg-nexus-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-nexus-500 transition-all duration-150"
+        >
+          Retry
+        </button>
       </div>
     );
   }

@@ -82,7 +82,13 @@ export default function CartSlideOver({ open, onClose }: CartSlideOverProps) {
                     </svg>
                   </div>
                   <p className="text-lg font-medium">Your cart is empty</p>
-                  <p className="text-sm mt-1">Add some products to get started</p>
+                  <p className="text-sm mt-1">Browse products to get started</p>
+                  <button
+                    onClick={onClose}
+                    className="mt-4 min-h-[44px] rounded-xl bg-nexus-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-nexus-500 transition-all duration-150"
+                  >
+                    Browse Products
+                  </button>
                 </div>
               ) : (
                 <ul className="space-y-4">
