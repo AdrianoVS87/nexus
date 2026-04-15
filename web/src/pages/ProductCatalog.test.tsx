@@ -48,7 +48,7 @@ describe('ProductCatalog', () => {
   it('renders loading spinner initially', () => {
     mockFetchProducts.mockReturnValue(new Promise(() => {}));
     renderWithRouter();
-    expect(document.querySelector('.animate-spin')).toBeTruthy();
+    expect(document.querySelector('.animate-pulse')).toBeTruthy();
   });
 
   it('renders products after fetch', async () => {

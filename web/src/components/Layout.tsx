@@ -22,11 +22,11 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen">
-      <nav className="sticky top-0 z-30 border-b border-gray-800 bg-gray-950/80 backdrop-blur-md">
+      <nav className="sticky top-0 z-30 border-b border-surface-border bg-surface-bg/80 backdrop-blur-md">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <Link to="/" className="text-xl font-bold text-nexus-400">
-              ⚡ Nexus
+              Nexus
             </Link>
 
             {/* Desktop nav */}
@@ -56,7 +56,7 @@ export default function Layout({ children }: LayoutProps) {
 
               <button
                 onClick={() => setCartOpen(true)}
-                className="relative ml-2 rounded-lg p-2 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+                className="relative ml-2 flex h-11 w-11 items-center justify-center rounded-lg text-gray-400 hover:bg-surface-card hover:text-white transition-colors"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121 0 2.09-.773 2.34-1.872l1.836-8.076A1.125 1.125 0 0 0 21.768 3H6.53l-.394-1.478A1.125 1.125 0 0 0 5.05 .75H2.25M6.75 21a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
@@ -77,10 +77,10 @@ export default function Layout({ children }: LayoutProps) {
             </div>
 
             {/* Mobile: cart + hamburger */}
-            <div className="flex items-center gap-2 sm:hidden">
+            <div className="flex items-center gap-1 sm:hidden">
               <button
                 onClick={() => setCartOpen(true)}
-                className="relative rounded-lg p-2 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+                className="relative flex h-11 w-11 items-center justify-center rounded-lg text-gray-400 hover:bg-surface-card hover:text-white transition-colors"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121 0 2.09-.773 2.34-1.872l1.836-8.076A1.125 1.125 0 0 0 21.768 3H6.53l-.394-1.478A1.125 1.125 0 0 0 5.05 .75H2.25M6.75 21a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
@@ -93,7 +93,7 @@ export default function Layout({ children }: LayoutProps) {
               </button>
               <button
                 onClick={() => setMobileMenuOpen((v) => !v)}
-                className="rounded-lg p-2 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-gray-400 hover:bg-surface-card hover:text-white transition-colors"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                   {mobileMenuOpen ? (
@@ -114,7 +114,7 @@ export default function Layout({ children }: LayoutProps) {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden border-t border-gray-800 sm:hidden"
+              className="overflow-hidden border-t border-surface-border sm:hidden"
             >
               <div className="px-4 py-3 space-y-1">
                 {NAV_LINKS.map((link) => {
@@ -124,10 +124,10 @@ export default function Layout({ children }: LayoutProps) {
                       key={link.to}
                       to={link.to}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      className={`block rounded-lg px-3 py-3 text-sm font-medium transition-colors min-h-[44px] flex items-center ${
                         active
-                          ? 'bg-gray-800 text-white'
-                          : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
+                          ? 'bg-surface-card text-white'
+                          : 'text-gray-400 hover:bg-surface-card/50 hover:text-white'
                       }`}
                     >
                       {link.label}

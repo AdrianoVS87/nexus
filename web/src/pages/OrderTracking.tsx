@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchOrder } from '@/lib/api';
 import { useOrderWebSocket } from '@/hooks/useWebSocket';
+import { useToastStore } from '@/store/toastStore';
 import { Order, OrderStatus } from '@/types';
 
 const STEPS: OrderStatus[] = [
@@ -43,11 +44,50 @@ function StatusBadge({ status }: { status: OrderStatus }) {
   );
 }
 
+function SkeletonTimeline() {
+  return (
+    <div className="lg:col-span-2 rounded-2xl border border-surface-border bg-surface-card p-6 animate-pulse">
+      <div className="h-6 w-36 rounded bg-surface-border/50 mb-6" />
+      <div className="ml-4 space-y-6">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex gap-4">
+            <div className="h-6 w-6 rounded-full bg-surface-border/50 shrink-0" />
+            <div className="space-y-1 flex-1">
+              <div className="h-4 w-36 rounded bg-surface-border/50" />
+              <div className="h-3 w-24 rounded bg-surface-border/30" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SkeletonDetails() {
+  return (
+    <div className="rounded-2xl border border-surface-border bg-surface-card p-6 h-fit animate-pulse">
+      <div className="h-6 w-32 rounded bg-surface-border/50 mb-4" />
+      <div className="space-y-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="flex justify-between">
+            <div className="space-y-1">
+              <div className="h-4 w-28 rounded bg-surface-border/50" />
+              <div className="h-3 w-20 rounded bg-surface-border/30" />
+            </div>
+            <div className="h-4 w-14 rounded bg-surface-border/50" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function OrderTracking() {
   const { id } = useParams<{ id: string }>();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const addToast = useToastStore((s) => s.addToast);
 
   useEffect(() => {
     if (!id) return;
@@ -60,20 +100,39 @@ export default function OrderTracking() {
   const handleWsUpdate = useCallback(
     (update: { orderId: string; status: string }) => {
       if (update.orderId === id) {
+        const newStatus = update.status as OrderStatus;
         setOrder((prev) =>
-          prev ? { ...prev, status: update.status as OrderStatus, updatedAt: new Date().toISOString() } : prev
+          prev ? { ...prev, status: newStatus, updatedAt: new Date().toISOString() } : prev
         );
+        const label = STEP_LABELS[newStatus] ?? newStatus;
+        if (newStatus === 'CONFIRMED') {
+          addToast(`Order ${label.toLowerCase()}!`, 'success');
+        } else if (newStatus === 'CANCELLED' || newStatus === 'REFUND_REQUESTED') {
+          addToast(`Order status: ${label}`, 'error');
+        } else {
+          addToast(`Order status: ${label}`, 'info');
+        }
       }
     },
-    [id]
+    [id, addToast]
   );
 
   useOrderWebSocket(handleWsUpdate, id);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-32">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-nexus-500 border-t-transparent" />
+      <div>
+        <div className="h-4 w-28 rounded bg-surface-border/30 animate-pulse mb-6" />
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-8">
+          <div className="space-y-2 animate-pulse">
+            <div className="h-7 w-44 rounded bg-surface-border/50" />
+            <div className="h-4 w-64 rounded bg-surface-border/30" />
+          </div>
+        </div>
+        <div className="grid gap-8 lg:grid-cols-3">
+          <SkeletonTimeline />
+          <SkeletonDetails />
+        </div>
       </div>
     );
   }
@@ -81,10 +140,14 @@ export default function OrderTracking() {
   if (error || !order) {
     return (
       <div className="flex flex-col items-center justify-center py-32 text-gray-400">
-        <span className="text-5xl mb-4">⚠️</span>
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10 mb-4">
+          <svg className="h-10 w-10 text-red-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+          </svg>
+        </div>
         <p className="text-lg font-medium">{error ?? 'Order not found'}</p>
-        <Link to="/orders" className="mt-4 text-nexus-400 hover:text-nexus-300 transition-colors">
-          ← Back to orders
+        <Link to="/orders" className="mt-4 text-nexus-400 hover:text-nexus-300 transition-colors min-h-[44px] flex items-center">
+          &larr; Back to orders
         </Link>
       </div>
     );
@@ -97,14 +160,14 @@ export default function OrderTracking() {
 
   return (
     <div>
-      <Link to="/orders" className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-white transition-colors mb-6">
-        ← Back to orders
+      <Link to="/orders" className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-white transition-colors mb-6 min-h-[44px]">
+        &larr; Back to orders
       </Link>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white">Order Tracking</h1>
-          <p className="mt-1 text-sm text-gray-400 font-mono">
+          <p className="mt-1 text-sm text-gray-400 font-mono break-all">
             {order.id}
           </p>
         </div>
@@ -113,7 +176,7 @@ export default function OrderTracking() {
 
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Timeline */}
-        <div className="lg:col-span-2 rounded-2xl border border-gray-800 bg-gray-900 p-6">
+        <div className="lg:col-span-2 rounded-2xl border border-surface-border bg-surface-card p-6">
           <h2 className="text-lg font-semibold text-white mb-6">Status Timeline</h2>
           <div className="relative ml-4">
             {STEPS.map((step, i) => {
@@ -128,7 +191,7 @@ export default function OrderTracking() {
                     <div className="absolute left-[11px] top-8 h-full w-0.5">
                       <div
                         className={`h-full w-full transition-colors duration-500 ${
-                          isPast ? 'bg-nexus-500' : 'bg-gray-700'
+                          isPast ? 'bg-nexus-500' : 'bg-surface-border'
                         }`}
                       />
                     </div>
@@ -144,7 +207,7 @@ export default function OrderTracking() {
                           ? 'border-nexus-400 bg-nexus-500 shadow-lg shadow-nexus-500/30'
                           : isPast
                             ? 'border-nexus-500 bg-nexus-600'
-                            : 'border-gray-600 bg-gray-800'
+                            : 'border-surface-border-light bg-surface-bg'
                       }`}
                     >
                       {isPast && (
@@ -212,20 +275,20 @@ export default function OrderTracking() {
         </div>
 
         {/* Order details sidebar */}
-        <div className="rounded-2xl border border-gray-800 bg-gray-900 p-6 h-fit">
+        <div className="rounded-2xl border border-surface-border bg-surface-card p-6 h-fit">
           <h2 className="text-lg font-semibold text-white mb-4">Order Details</h2>
           <ul className="space-y-3">
             {order.items.map((item) => (
               <li key={item.id} className="flex items-center justify-between text-sm">
                 <div>
                   <p className="text-gray-200">{item.productName}</p>
-                  <p className="text-gray-500">Qty: {item.quantity} × ${item.unitPrice.toFixed(2)}</p>
+                  <p className="text-gray-500">Qty: {item.quantity} &times; ${item.unitPrice.toFixed(2)}</p>
                 </div>
                 <p className="font-medium text-white">${item.subtotal.toFixed(2)}</p>
               </li>
             ))}
           </ul>
-          <div className="mt-4 border-t border-gray-800 pt-4 flex items-center justify-between">
+          <div className="mt-4 border-t border-surface-border pt-4 flex items-center justify-between">
             <span className="text-gray-400">Total</span>
             <span className="text-xl font-bold text-white">
               ${order.totalAmount.toFixed(2)}

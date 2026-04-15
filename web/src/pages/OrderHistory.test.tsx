@@ -26,7 +26,7 @@ describe('OrderHistory', () => {
   it('renders loading spinner initially', () => {
     mockFetchUserOrders.mockReturnValue(new Promise(() => {}));
     renderWithRouter();
-    expect(document.querySelector('.animate-spin')).toBeTruthy();
+    expect(document.querySelector('.animate-pulse')).toBeTruthy();
   });
 
   it('renders order list after fetch', async () => {
