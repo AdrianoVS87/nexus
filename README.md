@@ -138,6 +138,11 @@ sequenceDiagram
     O->>K: OrderCancelled
 ```
 
+## Screenshots
+
+> Screenshots pending — run `docker compose up -d` and open `http://localhost:5173` to see the UI live.
+> Saved to [`docs/screenshots/`](docs/screenshots/) when available.
+
 ## Quick Start
 
 ```bash
@@ -200,16 +205,19 @@ KRaft eliminates the operational overhead of running a separate ZooKeeper ensemb
 | Layer | Technology | Version |
 |-------|-----------|---------|
 | Language | Java | 21 (LTS) |
-| Framework | Spring Boot | 3.4 |
-| API Gateway | Spring Cloud Gateway | 2024.0 |
+| Framework | Spring Boot | 3.4.4 |
+| API Gateway | Spring Cloud Gateway | 2024.0.1 |
 | Messaging | Apache Kafka (KRaft) | 3.7 |
 | Database | PostgreSQL | 16 |
 | Cache/CQRS | Redis | 7 |
-| Frontend | React + TypeScript + Vite + Tailwind | 18 / 5 / 6 |
+| Frontend | React + TypeScript | 18.3 / 5.5 |
+| Bundler | Vite | 5.4 |
+| Styling | Tailwind CSS | 3.4 |
 | State | Zustand | 4.5 |
+| Animation | Framer Motion | 11.3 |
 | Metrics | Micrometer + Prometheus | - |
 | Migrations | Flyway | 10 |
-| Testing | JUnit 5 + Mockito | - |
+| Testing | JUnit 5 + Mockito + Vitest | - |
 | CI/CD | GitHub Actions | - |
 
 ## API Documentation
