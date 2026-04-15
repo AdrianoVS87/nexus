@@ -5,6 +5,10 @@ RUN apk add --no-cache maven
 
 COPY pom.xml .
 COPY nexus-common/pom.xml nexus-common/
+COPY order-service/pom.xml order-service/
+COPY payment-service/pom.xml payment-service/
+COPY inventory-service/pom.xml inventory-service/
+COPY notification-service/pom.xml notification-service/
 COPY api-gateway/pom.xml api-gateway/
 
 # Download dependencies (cached layer)
@@ -18,6 +22,7 @@ RUN mvn package -pl api-gateway -am -DskipTests -B -q
 # --- Runtime stage ---
 FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S nexus && adduser -S nexus -G nexus
+RUN mkdir -p /data && chown nexus:nexus /data
 WORKDIR /app
 COPY --from=build /workspace/api-gateway/target/*.jar app.jar
 USER nexus

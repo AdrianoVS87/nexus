@@ -5,7 +5,11 @@ RUN apk add --no-cache maven
 
 COPY pom.xml .
 COPY nexus-common/pom.xml nexus-common/
+COPY order-service/pom.xml order-service/
+COPY payment-service/pom.xml payment-service/
 COPY inventory-service/pom.xml inventory-service/
+COPY notification-service/pom.xml notification-service/
+COPY api-gateway/pom.xml api-gateway/
 
 # Download dependencies (cached layer)
 RUN mvn dependency:go-offline -pl inventory-service -am -B -q || true
