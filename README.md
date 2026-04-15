@@ -43,6 +43,8 @@ graph TB
     WEB -->|HTTP/WS| GW
     GW -->|/orders/**| OS
     GW -->|/products/**| IS
+    GW -->|/notifications/**| NS
+    GW -->|/ws/**| NS
 
     OS -->|OrderCreated<br/>PaymentRequested| K
     PS -->|PaymentCompleted<br/>PaymentFailed| K
@@ -203,7 +205,8 @@ KRaft eliminates the operational overhead of running a separate ZooKeeper ensemb
 | Messaging | Apache Kafka (KRaft) | 3.7 |
 | Database | PostgreSQL | 16 |
 | Cache/CQRS | Redis | 7 |
-| Frontend | React + TypeScript + Vite | 18 / 5 / 6 |
+| Frontend | React + TypeScript + Vite + Tailwind | 18 / 5 / 6 |
+| State | Zustand | 4.5 |
 | Metrics | Micrometer + Prometheus | - |
 | Migrations | Flyway | 10 |
 | Testing | JUnit 5 + Mockito | - |
@@ -227,7 +230,7 @@ nexus/
 ├── infra/                  # Prometheus + Grafana configs
 ├── docs/                   # API reference + ADRs
 ├── .github/workflows/      # CI pipeline
-└── docker-compose.yml      # Full stack orchestration (12 containers)
+└── docker-compose.yml      # Full stack orchestration (11 containers)
 ```
 
 ## License
